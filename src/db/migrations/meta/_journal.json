@@ -50,6 +50,13 @@
       "when": 1791569219673,
       "tag": "0006_ledger_dan_view_kas",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791570363663,
+      "tag": "0007_notifikasi_kanal",
+      "breakpoints": true
     }
   ]
 }
