@@ -58,14 +58,14 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 4: Presensi
 
-- [ ] Halaman pemindai (kamera, pemindai USB/Bluetooth, input manual) untuk Code 128 dan QR
-- [ ] Endpoint scan dalam satu transaksi dengan semua pemeriksaan
-- [ ] Layar hasil scan (nama, divisi, batch, status) dan pesan untuk duplikat/ditolak
-- [ ] Check-in online dengan kode sesi
-- [ ] Absen manual dengan catatan dan audit log
-- [ ] Dashboard kehadiran realtime (Broadcast)
-- [ ] Rate limit scan dan deteksi kejanggalan
-- [ ] Impor arsip ringkasan kehadiran dari Google Sheets
+- [x] Halaman pemindai (kamera, pemindai USB/Bluetooth, input manual) untuk Code 128 dan QR
+- [x] Endpoint scan dalam satu transaksi dengan semua pemeriksaan
+- [x] Layar hasil scan (nama, divisi, batch, status) dan pesan untuk duplikat/ditolak
+- [x] Check-in online dengan kode sesi
+- [x] Absen manual dengan catatan dan audit log
+- [x] Dashboard kehadiran realtime (Broadcast) — *perlu diuji dengan Supabase sungguhan*
+- [x] Rate limit scan dan deteksi kejanggalan
+- [x] Impor arsip ringkasan kehadiran dari Google Sheets (format ringkasan atau kolom p1..pN)
 - [ ] Uji lapangan dengan kartu asli, di berbagai pencahayaan
 
 **Selesai bila:** satu sesi offline dengan 30+ anggota berjalan lancar di lokasi sungguhan.

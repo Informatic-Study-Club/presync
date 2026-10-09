@@ -218,6 +218,14 @@ Payload: `v1.<member_code>.<card_version>.<sig>`, dengan `sig = base64url(HMAC-S
 ### Presensi online
 Anggota login, membuka sesi, lalu memasukkan `checkin_code` dalam jendela waktu sesi. Kode dibuat acak, berlaku selama sesi, dan dibatasi rate limit.
 
+### Detail implementasi (tahap 4)
+- "Sesi berjalan" diartikan sebagai jendela waktu: scan dibuka 60 menit sebelum mulai sampai 60 menit setelah selesai, check-in online 15 menit sebelum mulai sampai selesai. Sesi `off` selalu ditolak. Semua aturan di `src/lib/attendance/rules.ts` (fungsi murni, dites).
+- Metode tercatat: `scan_barcode` (kode polos), `scan_qr` (payload bertanda tangan), `manual_entry` (kode diketik koordinator; dibedakan dari pemindai USB lewat kecepatan ketikan), `self_checkin`, `manual`.
+- Kegiatan semua divisi boleh dicatat koordinator divisi mana pun; sesi berdivisi hanya koordinator divisi itu dan admin.
+- Realtime: server mengirim Broadcast ke channel `presensi:<session_id>` setelah presensi tersimpan, **tanpa data pribadi**. Channel publik bisa didengar siapa pun yang tahu namanya, jadi klien hanya memuat ulang data lewat server (yang memeriksa izin). Dashboard juga memuat ulang tiap 30 detik sebagai cadangan. Tidak perlu policy di `realtime.messages`.
+- Kode check-in: 6 karakter tanpa huruf/angka yang mudah tertukar, unik selama terisi.
+- Arsip Google Sheets: `attendance_archives` per anggota per program. Pertemuan yang kosong di semua baris dianggap belum terisi dan tidak dihitung; baris yang menyentuhnya ditandai `needs_verification`.
+
 ### Perhitungan kehadiran
 - Tidak Hadir dihitung otomatis hanya untuk sesi berstatus `done` tanpa catatan.
 - Sesi `off` tidak masuk penyebut.
