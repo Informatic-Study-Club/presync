@@ -108,3 +108,14 @@ export async function requireSession(): Promise<Session> {
   }
   return session;
 }
+
+/**
+ * Untuk Route Handler (unduhan file): sesi aktif dengan 2FA terpenuhi, atau
+ * null. Route Handler membalas 401 alih-alih mengalihkan halaman.
+ */
+export async function routeSession(): Promise<Session | null> {
+  const session = await getSession();
+  if (!session || session.member.status !== "aktif") return null;
+  if (requiresTwoFactor(session.user) && session.aal !== "aal2") return null;
+  return session;
+}
