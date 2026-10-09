@@ -120,6 +120,11 @@ Aturan:
 - Bila impor menyertakan `kode_id`, kode dipakai apa adanya setelah validasi format dan keunikan, lalu `last_seq` diset ke `max(last_seq, seq tertinggi di file)`.
 - Nomor yang kosong di data awal (21) dianggap terpakai dan tidak diterbitkan lagi.
 
+Detail implementasi (`src/lib/members/import/plan.ts`, fungsi murni dan dites):
+- Prefiks tahun untuk kode otomatis mengikuti **prefiks mayoritas di batch itu** (anggota yang ada ditambah isi file), atau tahun berjalan bila batch masih kosong. Dengan begitu anggota batch 01 yang menyusul tetap berawalan `ISC26`.
+- Nomor urut dari baris yang ditolak tetap dicadangkan (counter melompatinya), agar baris itu bisa diimpor ulang setelah dikoreksi tanpa bentrok.
+- Kode yang nomor urutnya sama dengan kode lain di batch yang sama (misalnya `ISC2501023` dan `ISC2601023`) diberi peringatan, bukan ditolak.
+
 Temuan pada data awal yang harus diselesaikan sebelum impor produksi:
 - 34 kode berawalan `ISC25` (Web Dev urutan 23-36, UI/UX 52-54, ML 67-83). Cocokkan dengan kartu fisik. Bila kartu tertulis `ISC26`, perbaiki di file impor, karena kode tidak bisa diubah setelah terbit.
 - Dua anggota belum punya kode. Counter diset ke 84, sehingga yang tanpa kode mendapat 85 dan 86 sesuai urutan baris di file.
@@ -135,6 +140,8 @@ Alur:
 4. Pratinjau menampilkan error dan peringatan per baris (duplikat, prefiks tahun tidak sesuai, kode otomatis yang akan dibuat).
 5. Setelah konfirmasi, semua baris valid disimpan dalam **satu transaksi**, termasuk pembuatan akun Auth, kode ID, dan penyesuaian counter.
 6. Undangan aktivasi masuk `notification_outbox` dan dikirim bertahap.
+
+Karena akun Auth dibuat lewat API Supabase (di luar transaksi Postgres), impor berjalan dua langkah: buat akun Auth untuk semua baris valid, lalu simpan data dalam satu transaksi dengan counter terkunci. Bila langkah kedua gagal, akun Auth yang baru dibuat dihapus lagi dan percobaan dicatat di `import_batches` berstatus `failed`. Akun dibuat tanpa password; anggota mengaktifkannya lewat tautan di email undangan.
 7. Catat di `import_batches` dan `audit_log`.
 
 Migrasi riwayat dari Google Sheets:
@@ -295,6 +302,8 @@ Worker mengambil antrean per batch, memilih kanal sesuai preferensi anggota, men
 Batas email (cek ulang di halaman harga Resend): free tier 3.000 per bulan dan 100 per hari. Worker maksimal 80/hari, 20/hari disisakan untuk email auth. Perkiraan pemakaian 800-1.200 per bulan, sehingga cukup untuk 170 anggota. Pertimbangkan Resend Pro bila anggota melebihi sekitar 300.
 
 SMTP Supabase Auth memakai Resend (`smtp.resend.com`, port 465, username `resend`, password API key khusus SMTP). Email auth langsung ke Resend tanpa lewat outbox, jadi kuota harian dibagi dengan worker.
+
+Undangan aktivasi: worker membuat tautan (`generateLink` tipe `recovery`) **saat email dikirim**, bukan saat impor, karena token Supabase cepat kedaluwarsa sedangkan undangan bisa menunggu beberapa hari di antrean. Undangan dibatasi 40 per hari di dalam batas 80. Undangan dilewati bila akun sudah pernah login.
 
 Jadwal:
 - Vercel Cron harian: rekap tunggakan, pengingat H-1, pengiriman outbox, ping database.

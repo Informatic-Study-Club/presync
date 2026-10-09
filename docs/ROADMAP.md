@@ -33,14 +33,14 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 2: Anggota, impor, kartu
 
-- [ ] Daftar dan profil anggota (nomor HP hanya terlihat peran berwenang)
-- [ ] Tabel `member_code_counters`, pembuatan kode ID dalam transaksi, tes untuk fungsi kode
-- [ ] Impor CSV/XLSX: template, pratinjau error per baris, normalisasi nama dan HP, impor atomik
-- [ ] Impor 85 anggota awal ke staging, lalu production
-- [ ] Undangan aktivasi lewat outbox, dikirim bertahap (30-50 per hari)
-- [ ] "Kartu Saya" dan cetak kartu PDF (satuan dan massal) dengan barcode `bwip-js`
-- [ ] Penerbitan ulang kartu (`card_version`, `legacy_card_allowed`)
-- [ ] Halaman kebijakan data dan jalur permintaan penghapusan
+- [x] Daftar dan profil anggota (nomor HP hanya terlihat peran berwenang), termasuk pengaturan peran dan divisi koordinator
+- [x] Tabel `member_code_counters`, pembuatan kode ID dalam transaksi, tes untuk fungsi kode
+- [x] Impor CSV/XLSX: template, pratinjau error per baris, normalisasi nama dan HP, impor atomik
+- [ ] Impor 85 anggota awal ke staging, lalu production — *menunggu email dan No. HP terkumpul serta proyek Supabase*
+- [ ] Undangan aktivasi lewat outbox, dikirim bertahap (30-50 per hari) — *kode siap (40/hari, cron harian `/api/cron/harian`); menunggu Resend dan uji kirim sungguhan*
+- [x] "Kartu Saya" dan cetak kartu PDF (satuan dan massal) dengan barcode `bwip-js`
+- [x] Penerbitan ulang kartu (`card_version`, `legacy_card_allowed`) dan blokir kartu, dengan audit log
+- [x] Halaman kebijakan data dan jalur permintaan penghapusan (`/kebijakan-data`, `/privasi`, `/admin/permintaan-data`) — *teks kebijakan perlu ditinjau pengurus*
 
 **Selesai bila:** seluruh anggota punya akun aktif dan kartu, dan kode ID di sistem sama dengan kartu fisik.
 
