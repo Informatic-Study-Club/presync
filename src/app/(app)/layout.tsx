@@ -19,6 +19,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/kelas", label: t.nav.classes, show: true },
     { href: "/checkin", label: t.nav.checkin, show: true },
     { href: "/kartu", label: t.nav.myCard, show: true },
+    { href: "/kas", label: t.nav.bills, show: true },
+    { href: "/kas/kelola", label: t.nav.finance, show: can(user, "finance.read") },
     { href: "/anggota", label: t.nav.members, show: canInAnyDivision(user, "member.list", divisionIds) },
     { href: "/anggota/impor", label: t.nav.import, show: can(user, "member.import") },
     { href: "/presensi/arsip", label: t.nav.archive, show: can(user, "member.import") },
