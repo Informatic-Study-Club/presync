@@ -128,3 +128,16 @@
     @apply font-sans;
   }
 }
+/* FullCalendar: samakan warna dengan tema Presync. */
+.presync-calendar {
+  --fc-classic-primary: var(--primary);
+  --fc-classic-primary-foreground: var(--primary-foreground);
+  --fc-classic-button: var(--secondary);
+  --fc-classic-button-border: var(--border);
+  --fc-classic-button-strong: var(--accent);
+  --fc-classic-button-strong-border: var(--ring);
+  --fc-classic-button-foreground: var(--foreground);
+  --fc-classic-background: var(--card);
+  --fc-classic-foreground: var(--foreground);
+  --fc-classic-border: var(--border);
+}
