@@ -8,6 +8,9 @@ const BUCKETS = {
   login: { limit: 5, window: "5 m" },
   forgot: { limit: 3, window: "15 m" },
   mfa: { limit: 5, window: "5 m" },
+  // Per pemindai; kelas 30+ orang dipindai dalam beberapa menit.
+  scan: { limit: 120, window: "1 m" },
+  checkin: { limit: 10, window: "5 m" },
 } as const satisfies Record<string, { limit: number; window: `${number} ${"s" | "m" | "h"}` }>;
 
 export type RateLimitBucket = keyof typeof BUCKETS;
