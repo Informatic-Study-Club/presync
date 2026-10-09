@@ -46,15 +46,15 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 3: Kalender, kelas, sesi
 
-- [ ] Tahun ajaran, semester, event kalender, feed `.ics`
-- [ ] Kelas per divisi dengan `planned_sessions`
-- [ ] Pendaftaran anggota ke kelas (`enrollments`)
-- [ ] Sesi rutin Kamis dengan `rrule`, melewati tanggal libur
-- [ ] Kelas tambahan dan kegiatan lain (offline, online, hybrid)
-- [ ] CHECK hari Kamis dan exclusion constraint jadwal (migrasi kustom dengan komentar penjelasan)
-- [ ] Status sesi: dijadwalkan, selesai, libur
+- [x] Tahun ajaran, semester, event kalender, feed `.ics` (tautan langganan pribadi per anggota)
+- [x] Kelas per divisi dengan `planned_sessions`
+- [x] Pendaftaran anggota ke kelas (`enrollments`)
+- [x] Sesi rutin Kamis dengan `rrule`, melewati tanggal libur dan dibatasi akhir semester
+- [x] Kelas tambahan dan kegiatan lain (offline, online, hybrid)
+- [x] CHECK hari Kamis dan exclusion constraint jadwal (migrasi kustom `0003`, diuji di Postgres/PGlite)
+- [x] Status sesi: dijadwalkan, selesai, libur
 
-**Selesai bila:** koordinator bisa membuat satu program tujuh pertemuan dan kalender anggota terisi dengan benar.
+**Selesai bila:** koordinator bisa membuat satu program tujuh pertemuan dan kalender anggota terisi dengan benar. *(Kode siap; perlu diuji ulang di staging setelah database tersedia.)*
 
 ## Tahap 4: Presensi
 

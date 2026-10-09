@@ -179,6 +179,14 @@ ALTER TABLE sessions ADD CONSTRAINT sessions_no_overlap
   WHERE (status <> 'off');
 ```
 
+Detail implementasi (tahap 3):
+- `sessions.division_id` juga diisi untuk sesi kelas (salinan dari kelasnya) agar cakupan dan otorisasi per divisi cukup membaca sesi. Kegiatan dengan `division_id` kosong berlaku untuk semua divisi dan hanya bisa dibuat admin.
+- Jadwal rutin dibuat oleh fungsi murni `generateRegularSessions` (`src/lib/academic/schedule.ts`): Kamis pertama pada/setelah tanggal mulai, melewati event `holiday` (semua divisi atau divisi kelas), dan berhenti di akhir semester. Pertemuan yang tidak muat dilaporkan agar koordinator menambah kelas tambahan.
+- Waktu WIB dihitung dengan offset tetap UTC+7 (Indonesia tidak memakai daylight saving).
+- Extension `btree_gist` dipasang di skema `extensions` (konvensi Supabase), bukan `public`.
+- Feed `.ics` memakai token acak per anggota di URL karena aplikasi kalender tidak mengirim cookie. Yang disimpan hanya hash SHA-256; token ditampilkan sekali dan bisa diganti kapan saja.
+- UI kalender memakai FullCalendar v7 (`@fullcalendar/react`, plugin sudah dibundel; butuh `temporal-polyfill`). Data disaring di server, klien hanya menampilkan.
+
 ## 9. Presensi
 
 ### Kartu yang sudah beredar
