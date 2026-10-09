@@ -93,6 +93,7 @@ export const id = {
     archive: "Arsip Presensi",
     bills: "Tagihan",
     finance: "Kas",
+    notifications: "Notifikasi",
   },
   errors: {
     forbidden: "Anda tidak berwenang melakukan ini.",
@@ -299,6 +300,19 @@ export const id = {
       expiry:
         "Tautan ini hanya berlaku sebentar. Bila sudah kedaluwarsa, buka halaman masuk Presync lalu pilih \"Lupa password?\" dengan email ini.",
       ignore: "Bila Anda bukan anggota ISC, abaikan email ini.",
+    },
+    reminder: {
+      headingTomorrow: (title: string) => `Besok: ${title}`,
+      headingSoon: (title: string) => `1 jam lagi: ${title}`,
+      location: "Lokasi",
+      meeting: "Tautan",
+      open: "Buka di Presync",
+    },
+    arrears: {
+      subject: "Pengingat tagihan kas ISC",
+      body: (count: number, total: string) =>
+        `Anda memiliki ${count} tagihan kas yang sudah lewat jatuh tempo dengan total ${total}.`,
+      open: "Lihat tagihan",
     },
   },
   academic: {
@@ -669,6 +683,53 @@ export const id = {
       colTotal: "Total",
       colOldest: "Jatuh tempo terlama",
       colPhone: "No. HP",
+    },
+  },
+  notifications: {
+    title: "Notifikasi",
+    description:
+      "Atur kanal untuk tiap jenis pemberitahuan. Email akun (aktivasi, reset password) selalu dikirim.",
+    categories: {
+      session_reminder: "Pengingat sesi (H-1 dan 1 jam sebelum)",
+      finance: "Tagihan dan tunggakan kas",
+    },
+    channels: { email: "Email", telegram: "Telegram", push: "Notifikasi perangkat" },
+    reminderEmailHint:
+      "Pengingat sesi lewat email sebaiknya tidak dinyalakan: kuota email organisasi terbatas (80 per hari). Tautkan Telegram atau aktifkan notifikasi perangkat.",
+    save: "Simpan preferensi",
+    saved: "Preferensi disimpan.",
+    unavailable: "belum tersambung",
+    emailSuppressed:
+      "Email Anda pernah ditolak server penerima (bounce) atau ditandai spam, jadi notifikasi email dihentikan. Hubungi admin bila alamatnya sudah benar.",
+    telegram: {
+      title: "Telegram",
+      linked: "Telegram sudah tertaut.",
+      notLinked: "Telegram belum tertaut.",
+      link: "Tautkan Telegram",
+      linkHint: "Buka tautan berikut, lalu tekan Start di Telegram. Tautan berlaku 15 menit dan hanya sekali pakai.",
+      openBot: "Buka bot Telegram",
+      unlink: "Putuskan Telegram",
+      unlinked: "Telegram diputus.",
+      notConfigured: "Bot Telegram belum dikonfigurasi.",
+      replyLinked: (name: string) => `Halo ${name}, akun Presync Anda sudah tertaut. Ketik /berhenti untuk memutus.`,
+      replyInvalid: "Tautan tidak valid atau sudah kedaluwarsa. Buat tautan baru dari menu Notifikasi di Presync.",
+      replyUnlinked: "Tautan akun Presync diputus. Anda tidak akan menerima notifikasi lagi di sini.",
+      replyHelp: "Bot ini mengirim pengingat Presync ISC. Tautkan akun lewat menu Notifikasi di Presync.",
+    },
+    push: {
+      title: "Notifikasi perangkat",
+      enable: "Aktifkan di perangkat ini",
+      disable: "Matikan di perangkat ini",
+      enabled: "Notifikasi aktif di perangkat ini.",
+      disabled: "Notifikasi perangkat dimatikan.",
+      unsupported: "Peramban ini tidak mendukung notifikasi. Di iPhone, tambahkan Presync ke Layar Utama terlebih dahulu.",
+      denied: "Izin notifikasi ditolak. Ubah izin di pengaturan peramban.",
+      notConfigured: "Notifikasi perangkat belum dikonfigurasi.",
+      devices: (n: number) => `${n} perangkat terdaftar`,
+      test: "Kirim notifikasi uji",
+      testSent: "Notifikasi uji dikirim.",
+      testTitle: "Presync",
+      testBody: "Notifikasi perangkat berfungsi.",
     },
   },
 } as const;
