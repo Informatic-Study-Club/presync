@@ -1,0 +1,9 @@
+# Semua file teks memakai LF di repo dan di working tree, termasuk di Windows,
+# supaya diff dan CI (Linux) konsisten.
+* text=auto eol=lf
+
+*.ico binary
+*.png binary
+*.jpg binary
+*.xlsx binary
+*.pdf binary

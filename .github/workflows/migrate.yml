@@ -1,0 +1,41 @@
+# Migrasi database dijalankan manual dan terpisah dari deploy Vercel
+# (docs/ARSITEKTUR.md bagian 15). Jalankan staging dulu, uji, baru production.
+# Secret DATABASE_URL_DIRECT, NEXT_PUBLIC_SUPABASE_URL, dan
+# NEXT_PUBLIC_SUPABASE_ANON_KEY disimpan per GitHub Environment
+# ("staging" dan "production"). Beri production reviewer wajib.
+name: Migrasi database
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Lingkungan tujuan
+        type: choice
+        options: [staging, production]
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrate-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    env:
+      DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run db:migrate
+      - name: Periksa RLS dan API publik
+        run: bun run db:check-rls
