@@ -26,3 +26,83 @@ export function activationEmail(input: { name: string; link: string }): EmailCon
 </body></html>`,
   };
 }
+
+// ---------------------------------------------------------------- pesan per kanal
+
+export type PushContent = { title: string; body: string; url: string };
+
+export type ReminderPayload = {
+  kind: "h1" | "1h";
+  title: string;
+  startsAt: string;
+  location: string | null;
+  meetingUrl: string | null;
+  url: string;
+};
+
+const reminderTime = new Intl.DateTimeFormat("id-ID", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Asia/Jakarta",
+});
+
+function reminderLines(p: ReminderPayload): { heading: string; lines: string[] } {
+  const m = t.emails.reminder;
+  return {
+    heading: p.kind === "h1" ? m.headingTomorrow(p.title) : m.headingSoon(p.title),
+    lines: [
+      reminderTime.format(new Date(p.startsAt)),
+      ...(p.location ? [`${m.location}: ${p.location}`] : []),
+      ...(p.meetingUrl ? [`${m.meeting}: ${p.meetingUrl}`] : []),
+    ],
+  };
+}
+
+export function reminderEmail(p: ReminderPayload): EmailContent {
+  const { heading, lines } = reminderLines(p);
+  return {
+    subject: heading,
+    text: [heading, "", ...lines, "", p.url].join("\n"),
+    html: `<!doctype html><html lang="id"><body style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
+<p><strong>${escapeHtml(heading)}</strong></p>
+${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join("\n")}
+<p><a href="${escapeHtml(p.url)}">${escapeHtml(t.emails.reminder.open)}</a></p>
+</body></html>`,
+  };
+}
+
+export function reminderTelegram(p: ReminderPayload): string {
+  const { heading, lines } = reminderLines(p);
+  return [heading, ...lines, p.url].join("\n");
+}
+
+export function reminderPush(p: ReminderPayload): PushContent {
+  const { heading, lines } = reminderLines(p);
+  return { title: heading, body: lines.join(" · "), url: p.url };
+}
+
+export type ArrearsPayload = { count: number; totalLabel: string; url: string };
+
+export function arrearsEmail(p: ArrearsPayload): EmailContent {
+  const m = t.emails.arrears;
+  const body = m.body(p.count, p.totalLabel);
+  return {
+    subject: m.subject,
+    text: [body, "", p.url].join("\n"),
+    html: `<!doctype html><html lang="id"><body style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
+<p>${escapeHtml(body)}</p>
+<p><a href="${escapeHtml(p.url)}">${escapeHtml(m.open)}</a></p>
+</body></html>`,
+  };
+}
+
+export function arrearsTelegram(p: ArrearsPayload): string {
+  return `${t.emails.arrears.body(p.count, p.totalLabel)}\n${p.url}`;
+}
+
+export function arrearsPush(p: ArrearsPayload): PushContent {
+  return { title: t.emails.arrears.subject, body: t.emails.arrears.body(p.count, p.totalLabel), url: p.url };
+}
