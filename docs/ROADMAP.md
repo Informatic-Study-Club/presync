@@ -72,14 +72,14 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 5: Kas
 
-- [ ] Kategori, jadwal iuran, tagihan
-- [ ] Unggah bukti transfer ke bucket privat
-- [ ] Verifikasi bendahara dalam transaksi, ledger hanya-tambah dengan trigger penolak UPDATE/DELETE
-- [ ] Transaksi koreksi (`reversal_of`)
-- [ ] View saldo dan tunggakan
-- [ ] Antarmuka `PaymentProvider` (belum ada implementasi provider)
+- [x] Kategori, jadwal iuran, tagihan
+- [x] Unggah bukti transfer ke bucket privat (lewat server, signed URL 60 detik)
+- [x] Verifikasi bendahara dalam transaksi, ledger hanya-tambah dengan trigger penolak UPDATE/DELETE (dan TRUNCATE)
+- [x] Transaksi koreksi (`reversal_of`)
+- [x] View saldo dan tunggakan (`security_invoker`, tanpa akses anon) dan tutup buku per bulan
+- [x] Antarmuka `PaymentProvider` (belum ada implementasi provider)
 
-**Selesai bila:** bendahara bisa menutup satu bulan kas dan angka saldo cocok dengan buku manual.
+**Selesai bila:** bendahara bisa menutup satu bulan kas dan angka saldo cocok dengan buku manual. *(Kode siap; perlu dicocokkan dengan buku manual di staging.)*
 
 ## Tahap 6: Notifikasi
 

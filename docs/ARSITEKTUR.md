@@ -279,6 +279,13 @@ CREATE TRIGGER transactions_append_only
 - Nominal `bigint` dalam rupiah. Saldo dari view yang menjumlahkan pemasukan dan pengeluaran.
 - Status tagihan: `unpaid`, `pending`, `paid`, `waived`.
 
+### Detail implementasi (tahap 5)
+- Transaksi koreksi berjenis **kebalikan** dari transaksi asal dengan nominal sama, dibukukan pada tanggal koreksi. Koreksi tidak bisa dikoreksi lagi, dan satu transaksi hanya sekali dikoreksi (`reversal_of` unik). Mengoreksi transaksi dari pembayaran tagihan membuat pembayaran berstatus `reversed` dan tagihan kembali `unpaid`.
+- View `finance_balance`, `finance_monthly`, `member_arrears` dibuat dengan `security_invoker = true` dan hak `anon`/`authenticated` dicabut. Tanpa itu, view di skema public bisa dibaca lewat API publik Supabase meski tabelnya ber-RLS. `bun run db:check-rls` ikut menguji view.
+- **Tutup buku**: `finance_period_closures` per bulan, harus berurutan. Setelah ditutup, transaksi baru (termasuk verifikasi dan koreksi) tidak boleh bertanggal di bulan itu. Saldo penutupan disimpan sebagai catatan; sumber kebenaran tetap ledger.
+- Bukti transfer diunggah lewat Server Action (maks. 4 MB, di bawah batas body Vercel 4,5 MB), jenis file dicek dari isi (JPG/PNG/WEBP/PDF), lalu disimpan di bucket privat `bukti-pembayaran` dengan service role. Bucket dibuat otomatis bila belum ada.
+- Pembayaran tunai dicatat bendahara langsung sebagai pembayaran terverifikasi (tanpa bukti) dalam satu transaksi.
+
 ### Siap gateway
 - `payments` memuat `method`, `provider`, `provider_order_id` (unik), `provider_status`, `fee_amount`, dan `raw_webhook`.
 - Antarmuka adapter:

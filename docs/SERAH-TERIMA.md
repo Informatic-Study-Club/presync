@@ -99,6 +99,13 @@ Admin pertama dibuat dengan skrip, karena tidak ada pendaftaran publik:
 4. Setelah deploy, periksa: login, halaman pemindai, dan satu kali kirim email uji.
 5. Bila deploy bermasalah: rollback ke deployment sebelumnya dari dashboard Vercel. Migrasi yang sudah berjalan tidak ikut mundur, jadi tulis migrasi yang kompatibel mundur.
 
+## 5a. Tutup buku bulanan (bendahara)
+
+1. Pastikan semua bukti transfer bulan itu sudah diverifikasi atau ditolak (Kas > Verifikasi).
+2. Buka Kas > Buku kas, pilih bulan, lalu cocokkan saldo akhir dengan buku manual/rekening.
+3. Selisih dikoreksi dengan transaksi koreksi atau transaksi baru, bukan dengan mengubah data.
+4. Tekan "Tutup bulan". Bulan harus ditutup berurutan; setelah ditutup, transaksi baru tidak bisa bertanggal di bulan itu.
+
 ## 6. Rotasi key dan secret
 
 Lakukan saat pengurus berganti, saat ada kecurigaan kebocoran, dan minimal sekali setahun.
