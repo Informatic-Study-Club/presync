@@ -34,3 +34,29 @@ export function serverEnv(): ServerEnv {
   return cached;
 }
 
+
+// Secret yang hanya dibutuhkan fitur tertentu. Dibaca saat dipakai supaya
+// halaman lain tetap jalan walau secret itu belum diisi.
+const optionalSecrets = {
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
+  CARD_SECRET: z.string().min(32),
+  CRON_SECRET: z.string().min(16),
+  RESEND_API_KEY: z.string().min(10),
+  EMAIL_FROM: z.string().min(3),
+  EMAIL_REPLY_TO: z.string().optional(),
+} as const;
+
+type OptionalSecret = keyof typeof optionalSecrets;
+
+/** Nilai secret, atau undefined bila kosong/tidak valid. */
+export function optionalSecret(name: OptionalSecret): string | undefined {
+  const parsed = optionalSecrets[name].safeParse(process.env[name] || undefined);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/** Nilai secret; melempar error yang jelas bila kosong. */
+export function requireSecret(name: Exclude<OptionalSecret, "EMAIL_REPLY_TO">): string {
+  const value = optionalSecret(name);
+  if (!value) throw new Error(`${name} belum diisi atau tidak valid (lihat .env.example)`);
+  return value;
+}
