@@ -10,6 +10,7 @@ import {
   text,
   time,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { members } from "./members";
@@ -164,6 +165,8 @@ export const sessions = pgTable(
       sql`(${t.mode} = 'online' or ${t.location} is not null) and (${t.mode} = 'offline' or ${t.meetingUrl} is not null)`,
     ),
     check("sessions_off_reason", sql`${t.status} <> 'off' or ${t.offReason} is not null`),
+    // Kode check-in online unik selama masih diisi (NULL boleh berulang).
+    uniqueIndex("sessions_checkin_code_unique").on(t.checkinCode),
     index("sessions_class_idx").on(t.classId, t.startsAt),
     index("sessions_starts_at_idx").on(t.startsAt),
   ],

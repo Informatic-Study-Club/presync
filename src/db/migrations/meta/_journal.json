@@ -29,6 +29,13 @@
       "when": 1791566316447,
       "tag": "0003_sesi_kamis_dan_jadwal",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791567316217,
+      "tag": "0004_presensi",
+      "breakpoints": true
     }
   ]
 }
