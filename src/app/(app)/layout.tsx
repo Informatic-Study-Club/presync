@@ -17,9 +17,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/", label: t.nav.home, show: true },
     { href: "/kalender", label: t.nav.calendar, show: true },
     { href: "/kelas", label: t.nav.classes, show: true },
+    { href: "/checkin", label: t.nav.checkin, show: true },
     { href: "/kartu", label: t.nav.myCard, show: true },
     { href: "/anggota", label: t.nav.members, show: canInAnyDivision(user, "member.list", divisionIds) },
     { href: "/anggota/impor", label: t.nav.import, show: can(user, "member.import") },
+    { href: "/presensi/arsip", label: t.nav.archive, show: can(user, "member.import") },
     { href: "/admin/permintaan-data", label: t.nav.dataRequests, show: can(user, "privacy.manage") },
     { href: "/privasi", label: t.nav.privacy, show: true },
   ].filter((l) => l.show);

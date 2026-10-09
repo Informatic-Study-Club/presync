@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { Field, VenueFields } from "@/components/academic/venue-fields";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   addExtraSessionAction,
   enrollMembersAction,
@@ -16,6 +18,7 @@ import {
   updateSessionAction,
 } from "@/lib/academic/actions";
 import { getClassDetail, loadViewer } from "@/lib/academic/queries";
+import { classRecap } from "@/lib/attendance/service";
 import { toJakarta } from "@/lib/academic/time";
 import { requireSession } from "@/lib/auth/session";
 import { id as t } from "@/messages/id";
@@ -53,6 +56,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
   if (!detail) notFound();
   const created = createdSchema.parse(await searchParams);
   const done = detail.sessions.filter((s) => s.kind === "regular" && s.status === "done").length;
+  const recap = detail.canManage ? await classRecap(detail.id) : [];
 
   return (
     <div className="space-y-6">
@@ -107,7 +111,14 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                       </p>
                     ) : null}
                   </div>
-                  <Badge variant={STATUS_VARIANT[s.status]}>{t.academic.sessionStatus[s.status]}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={STATUS_VARIANT[s.status]}>{t.academic.sessionStatus[s.status]}</Badge>
+                    {detail.canManage && s.status !== "off" ? (
+                      <Link href={`/presensi/${s.id}`} className="text-primary underline-offset-4 hover:underline">
+                        {t.attendance.session.openAttendance}
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
 
                 {detail.canManage ? (
@@ -157,6 +168,44 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
 
       {detail.canManage ? (
         <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t.attendance.recap.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recap.every((r) => r.summary.counted === 0) ? (
+                <p className="text-sm text-muted-foreground">{t.attendance.recap.noDone}</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t.attendance.session.colMember}</TableHead>
+                      <TableHead>{t.attendanceStatus.hadir}</TableHead>
+                      <TableHead>{t.attendanceStatus.izin}</TableHead>
+                      <TableHead>{t.attendanceStatus.sakit}</TableHead>
+                      <TableHead>{t.attendanceStatus.tidak_hadir}</TableHead>
+                      <TableHead>{t.attendance.recap.colPercent}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recap.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell>
+                          <span className="font-mono text-muted-foreground">{r.memberCode}</span> {r.fullName}
+                        </TableCell>
+                        <TableCell>{r.summary.hadir}</TableCell>
+                        <TableCell>{r.summary.izin}</TableCell>
+                        <TableCell>{r.summary.sakit}</TableCell>
+                        <TableCell>{r.summary.tidakHadir}</TableCell>
+                        <TableCell>{r.summary.percent === null ? "-" : `${r.summary.percent.toLocaleString("id-ID")}%`}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>{c.addExtra}</CardTitle>

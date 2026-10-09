@@ -92,6 +92,11 @@ export default async function ClassesPage() {
                   <Badge variant={a.status === "off" ? "destructive" : "secondary"}>
                     {t.academic.sessionStatus[a.status]}
                   </Badge>
+                  {managed.length > 0 && a.status !== "off" ? (
+                    <Link href={`/presensi/${a.id}`} className="text-primary underline-offset-4 hover:underline">
+                      {t.attendance.session.openAttendance}
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             ))
