@@ -50,12 +50,14 @@ const EXPECTED: Record<Action, Record<NonAdmin, Scenario[]>> = {
   "member.read_contact": { koordinator: ["own", "sameDiv"], bendahara: ["arrears"], anggota: [] },
   "member.update": { koordinator: [], bendahara: [], anggota: [] },
   "member.import": { koordinator: [], bendahara: [], anggota: [] },
+  "member.invite": { koordinator: [], bendahara: [], anggota: [] },
   "role.manage": { koordinator: [], bendahara: [], anggota: [] },
   "division.manage": { koordinator: [], bendahara: [], anggota: [] },
   "audit.read": { koordinator: [], bendahara: [], anggota: [] },
   "card.view": { koordinator: ["own", "sameDiv"], bendahara: ["own"], anggota: ["own"] },
   "card.print": { koordinator: ["own", "sameDiv"], bendahara: [], anggota: [] },
   "card.reissue": { koordinator: [], bendahara: [], anggota: [] },
+  "card.block": { koordinator: [], bendahara: [], anggota: [] },
   "calendar.read": { koordinator: ALL, bendahara: ALL, anggota: ALL },
   "calendar.manage": { koordinator: [], bendahara: [], anggota: [] },
   "class.manage": { koordinator: ["own", "sameDiv"], bendahara: [], anggota: [] },
@@ -76,6 +78,8 @@ const EXPECTED: Record<Action, Record<NonAdmin, Scenario[]>> = {
   "invoice.read": { koordinator: ["own"], bendahara: ALL, anggota: ["own"] },
   "payment.submit": { koordinator: ["own"], bendahara: ["own"], anggota: ["own"] },
   "notification.preferences": { koordinator: ["own"], bendahara: ["own"], anggota: ["own"] },
+  "privacy.request": { koordinator: ["own"], bendahara: ["own"], anggota: ["own"] },
+  "privacy.manage": { koordinator: [], bendahara: [], anggota: [] },
 };
 
 describe("can(): matriks peran × aksi × resource", () => {
@@ -171,5 +175,16 @@ describe("assertCan", () => {
   });
   test("tidak melempar bila diizinkan", () => {
     expect(() => assertCan(USERS.admin, "role.manage")).not.toThrow();
+  });
+});
+
+describe("canInAnyDivision", () => {
+  test("koordinator hanya berwenang bila divisinya ada di daftar", async () => {
+    const { canInAnyDivision } = await import("./index");
+    expect(canInAnyDivision(USERS.koordinator, "member.list", [DIV_B, DIV_A])).toBe(true);
+    expect(canInAnyDivision(USERS.koordinator, "member.list", [DIV_B])).toBe(false);
+    expect(canInAnyDivision(USERS.anggota, "member.list", [DIV_A, DIV_B])).toBe(false);
+    expect(canInAnyDivision(USERS.admin, "member.list", [DIV_B])).toBe(true);
+    expect(canInAnyDivision(USERS.admin, "member.list", [])).toBe(false);
   });
 });

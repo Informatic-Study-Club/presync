@@ -36,6 +36,7 @@ export const ACTIONS = [
   "member.read_contact",
   "member.update",
   "member.import",
+  "member.invite",
   "role.manage",
   "division.manage",
   "audit.read",
@@ -43,6 +44,7 @@ export const ACTIONS = [
   "card.view",
   "card.print",
   "card.reissue",
+  "card.block",
   // Kalender, kelas, sesi
   "calendar.read",
   "calendar.manage",
@@ -69,6 +71,9 @@ export const ACTIONS = [
   "payment.submit",
   // Notifikasi
   "notification.preferences",
+  // Data pribadi (UU PDP)
+  "privacy.request",
+  "privacy.manage",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -110,6 +115,7 @@ const OWN_RESOURCE_ACTIONS: ReadonlySet<Action> = new Set<Action>([
   "invoice.read",
   "payment.submit",
   "notification.preferences",
+  "privacy.request",
 ]);
 
 /** Aksi yang boleh untuk semua anggota tanpa resource tertentu. */
@@ -190,4 +196,16 @@ export function assertCan(
   resource?: Resource,
 ): asserts user is SessionUser {
   if (!can(user, action, resource)) throw new ForbiddenError(action);
+}
+
+/**
+ * true bila user berwenang atas aksi berbasis divisi di salah satu divisi.
+ * Dipakai untuk menampilkan menu, bukan pengganti can() pada data.
+ */
+export function canInAnyDivision(
+  user: SessionUser,
+  action: Action,
+  divisionIds: readonly string[],
+): boolean {
+  return divisionIds.some((divisionId) => can(user, action, { divisionId }));
 }
