@@ -15,6 +15,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const links = [
     { href: "/", label: t.nav.home, show: true },
+    { href: "/kalender", label: t.nav.calendar, show: true },
+    { href: "/kelas", label: t.nav.classes, show: true },
     { href: "/kartu", label: t.nav.myCard, show: true },
     { href: "/anggota", label: t.nav.members, show: canInAnyDivision(user, "member.list", divisionIds) },
     { href: "/anggota/impor", label: t.nav.import, show: can(user, "member.import") },
