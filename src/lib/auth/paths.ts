@@ -6,6 +6,11 @@ const PUBLIC_PATHS = [
   "/auth/confirm",
   "/kebijakan-data",
   "/api/cron",
+  // Webhook memverifikasi tanda tangan atau secret sendiri.
+  "/api/webhooks",
+  // Aset PWA harus bisa diambil tanpa sesi.
+  "/sw.js",
+  "/manifest.webmanifest",
   // Feed .ics dilindungi token acak, karena aplikasi kalender tidak mengirim cookie.
   "/kalender/feed",
 ];
