@@ -1,0 +1,37 @@
+# Pengingat "1 jam sebelum" dan pengiriman antrean notifikasi tiap 15 menit.
+# Cron Vercel Hobby hanya harian, jadi jadwal rapat dijalankan dari sini
+# (docs/ARSITEKTUR.md bagian 12).
+#
+# Secret repository yang dibutuhkan: APP_URL (production) dan CRON_SECRET.
+# Catatan: GitHub menonaktifkan workflow terjadwal setelah 60 hari repo tanpa
+# aktivitas. Periksa tab Actions secara berkala (SERAH-TERIMA bagian 7).
+name: Pengingat
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pengingat
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Panggil endpoint pengingat
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL atau CRON_SECRET belum diisi; dilewati."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/pengingat"
