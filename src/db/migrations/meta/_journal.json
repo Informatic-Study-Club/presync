@@ -15,6 +15,20 @@
       "when": 1791557395269,
       "tag": "0001_anggota_impor_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791566314481,
+      "tag": "0002_kalender_kelas_sesi",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791566316447,
+      "tag": "0003_sesi_kamis_dan_jadwal",
+      "breakpoints": true
     }
   ]
 }
