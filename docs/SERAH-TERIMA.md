@@ -99,6 +99,13 @@ Admin pertama dibuat dengan skrip, karena tidak ada pendaftaran publik:
 4. Setelah deploy, periksa: login, halaman pemindai, dan satu kali kirim email uji.
 5. Bila deploy bermasalah: rollback ke deployment sebelumnya dari dashboard Vercel. Migrasi yang sudah berjalan tidak ikut mundur, jadi tulis migrasi yang kompatibel mundur.
 
+## 4a. Penyiapan kanal notifikasi
+
+- **Telegram**: buat bot di BotFather, isi `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, dan `TELEGRAM_WEBHOOK_SECRET` (acak), lalu jalankan `bun run telegram:webhook` dengan `APP_URL` lingkungan itu. Ulangi setelah token dirotasi.
+- **Web push**: `bunx web-push generate-vapid-keys`, isi `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Mengganti kunci membuat semua langganan perangkat tidak berlaku.
+- **Webhook Resend**: di dashboard Resend tambahkan endpoint `<APP_URL>/api/webhooks/resend` untuk event `email.bounced` dan `email.complained`, lalu isi `RESEND_WEBHOOK_SECRET`.
+- **GitHub Actions "Pengingat"**: isi secret repository `APP_URL` (production) dan `CRON_SECRET` (sama dengan Vercel). Workflow terjadwal dinonaktifkan GitHub bila repo 60 hari tanpa aktivitas; periksa tab Actions tiap bulan.
+
 ## 5a. Tutup buku bulanan (bendahara)
 
 1. Pastikan semua bukti transfer bulan itu sudah diverifikasi atau ditolak (Kas > Verifikasi).

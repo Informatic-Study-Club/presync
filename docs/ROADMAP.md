@@ -83,15 +83,15 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 6: Notifikasi
 
-- [ ] `notification_outbox`, worker batch, batas 80/hari untuk email
-- [ ] Adapter email (Resend), idempotency key, webhook bounce/spam
-- [ ] Adapter Telegram, penautan akun lewat tautan sekali pakai
-- [ ] Web push (PWA, VAPID)
-- [ ] Preferensi kanal per kategori
-- [ ] Pengingat H-1 (Vercel Cron) dan "1 jam sebelum" (GitHub Actions)
-- [ ] Digest tunggakan mingguan
+- [x] `notification_outbox`, worker batch, batas 80/hari untuk email
+- [x] Adapter email (Resend), idempotency key, webhook bounce/spam (tanda tangan Svix)
+- [x] Adapter Telegram, penautan akun lewat tautan sekali pakai
+- [x] Web push (PWA, VAPID)
+- [x] Preferensi kanal per kategori
+- [x] Pengingat H-1 (Vercel Cron) dan "1 jam sebelum" (GitHub Actions)
+- [x] Digest tunggakan mingguan (Senin)
 
-**Selesai bila:** pengingat sesi sampai ke minimal dua kanal tanpa melampaui kuota harian.
+**Selesai bila:** pengingat sesi sampai ke minimal dua kanal tanpa melampaui kuota harian. *(Kode siap; perlu diuji dengan bot Telegram, kunci VAPID, dan Resend sungguhan.)*
 
 ## Tahap 7: Rekap dan laporan
 

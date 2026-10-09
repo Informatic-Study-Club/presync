@@ -334,6 +334,14 @@ Jadwal:
 
 Webhook Resend menandai email yang bounce atau dilaporkan spam, lalu pengiriman ke alamat itu dihentikan.
 
+Detail implementasi (tahap 6):
+- Kategori yang bisa diatur: `session_reminder` dan `finance`. Email akun (aktivasi, reset) selalu dikirim. Notifikasi disebar per kanal oleh `notifyMembers` (satu baris outbox per kanal, kunci idempotensi `<kunci>:<kanal>`) sesuai preferensi dan kanal yang tersedia (Telegram tertaut, ada langganan push, email tidak di daftar blokir).
+- **Pengingat sesi bawaan tanpa email**: satu pengingat ke 85 anggota sudah melebihi 80 email/hari. Anggota diarahkan menautkan Telegram atau mengaktifkan notifikasi perangkat. Pengingat membawa `expiresAt` (waktu mulai sesi) dan dilewati bila terlambat terkirim.
+- Pengingat "1 jam sebelum" berlaku untuk semua sesi (bukan hanya kegiatan di luar Kamis) karena Telegram dan push tidak berkuota; jendela 45-75 menit cocok dengan jadwal GitHub Actions tiap 15 menit, dan idempotensi mencegah ganda.
+- Telegram: token penautan acak 15 menit, sekali pakai, hanya hash disimpan; satu chat untuk satu anggota; bot yang diblokir otomatis memutus tautan. Webhook diverifikasi header `X-Telegram-Bot-Api-Secret-Token`.
+- Web push: langganan yang dibalas 404/410 oleh layanan push dihapus otomatis. Service worker hanya menampilkan notifikasi dan hanya membuka URL di origin sendiri.
+- Webhook Resend diverifikasi dengan tanda tangan Svix (toleransi 5 menit); `email.bounced` dan `email.complained` masuk `email_suppressions`.
+
 ## 13. Laporan
 
 | Laporan | Format |
