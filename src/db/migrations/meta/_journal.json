@@ -8,6 +8,13 @@
       "when": 1791552309647,
       "tag": "0000_fondasi",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791557395269,
+      "tag": "0001_anggota_impor_outbox",
+      "breakpoints": true
     }
   ]
 }
