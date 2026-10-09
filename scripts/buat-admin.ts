@@ -11,9 +11,9 @@
 
 import { parseArgs } from "node:util";
 import { createClient } from "@supabase/supabase-js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { divisions, memberRoles, members } from "@/db/schema";
+import { divisions, memberCodeCounters, memberRoles, members } from "@/db/schema";
 import { writeAudit } from "@/lib/audit";
 import { parseMemberCode } from "@/lib/members/member-code";
 import { normalizePhone } from "@/lib/members/phone";
@@ -120,6 +120,15 @@ async function createNewAdmin() {
         batch: input.batch,
       });
       await tx.insert(memberRoles).values({ memberId: userId, role: "admin" });
+      // Nomor urut kode dianggap terpakai agar tidak diterbitkan lagi.
+      const seq = parseMemberCode(input.memberCode)?.seq ?? 0;
+      await tx
+        .insert(memberCodeCounters)
+        .values({ batch: input.batch, lastSeq: seq })
+        .onConflictDoUpdate({
+          target: memberCodeCounters.batch,
+          set: { lastSeq: sql`greatest(${memberCodeCounters.lastSeq}, ${seq})`, updatedAt: new Date() },
+        });
       await writeAudit(tx, {
         actorId: null,
         action: "role.grant",

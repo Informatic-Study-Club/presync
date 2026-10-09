@@ -5,7 +5,14 @@ import {
   parseMemberCode,
   yearDigits,
 } from "./member-code";
+import { nameCaseHint, normalizeName } from "./name";
 import { isNormalizedPhone, normalizePhone } from "./phone";
+
+// Karakter tak terlihat untuk data uji (sumber tetap ASCII).
+const NBSP = String.fromCodePoint(0xa0);
+const NNBSP = String.fromCodePoint(0x202f);
+const ZWSP = String.fromCodePoint(0x200b);
+const BOM = String.fromCodePoint(0xfeff);
 
 describe("kode ID anggota", () => {
   test("mem-parse kode valid", () => {
@@ -67,7 +74,7 @@ describe("normalisasi nomor HP", () => {
     ["0812 3456 7890", "+6281234567890"],
     ["+62 812.3456.7890", "+6281234567890"],
     ["(0812) 3456 7890", "+6281234567890"],
-    ["0812 3456 7890", "+6281234567890"],
+    [`0812${NNBSP}3456${NBSP}7890`, "+6281234567890"],
     ["08123456789", "+628123456789"],
     ["0812345678901", "+62812345678901"],
   ])("%p -> %p", (input, expected) => {
@@ -91,5 +98,27 @@ describe("normalisasi nomor HP", () => {
   test("isNormalizedPhone hanya menerima format akhir", () => {
     expect(isNormalizedPhone("+6281234567890")).toBe(true);
     expect(isNormalizedPhone("081234567890")).toBe(false);
+  });
+});
+
+describe("normalisasi nama", () => {
+  test.each([
+    ["  Budi   Santoso  ", "Budi Santoso"],
+    [`Budi${NNBSP}Santoso`, "Budi Santoso"],
+    [`Budi${NBSP}${NBSP}Santoso`, "Budi Santoso"],
+    [`Bu${ZWSP}di Santoso${BOM}`, "Budi Santoso"],
+    ["Budi\tSantoso\n", "Budi Santoso"],
+    ["M. Rizky A.", "M. Rizky A."],
+    ["BUDI SANTOSO", "BUDI SANTOSO"], // huruf kapital tidak diubah
+  ])("%p -> %p", (input, expected) => {
+    expect(normalizeName(input)).toBe(expected);
+  });
+
+  test("petunjuk huruf kapital", () => {
+    expect(nameCaseHint("BUDI SANTOSO")).toBe("all_upper");
+    expect(nameCaseHint("budi santoso")).toBe("all_lower");
+    expect(nameCaseHint("Budi Santoso")).toBeNull();
+    expect(nameCaseHint("M. A.")).toBe("all_upper");
+    expect(nameCaseHint("A")).toBeNull();
   });
 });
