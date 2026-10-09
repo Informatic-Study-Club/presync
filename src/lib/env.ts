@@ -44,6 +44,13 @@ const optionalSecrets = {
   RESEND_API_KEY: z.string().min(10),
   EMAIL_FROM: z.string().min(3),
   EMAIL_REPLY_TO: z.string().optional(),
+  RESEND_WEBHOOK_SECRET: z.string().startsWith("whsec_"),
+  TELEGRAM_BOT_TOKEN: z.string().regex(/^[0-9]+:[A-Za-z0-9_-]{30,}$/),
+  TELEGRAM_WEBHOOK_SECRET: z.string().regex(/^[A-Za-z0-9_-]{16,256}$/),
+  TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/),
+  VAPID_PUBLIC_KEY: z.string().min(40),
+  VAPID_PRIVATE_KEY: z.string().min(20),
+  VAPID_SUBJECT: z.string().regex(/^(mailto:|https:)/),
 } as const;
 
 type OptionalSecret = keyof typeof optionalSecrets;
