@@ -97,26 +97,29 @@ function toRows(table: { rowNumber: number; cells: string[] }[]): ParseResult {
   return { ok: true, rows };
 }
 
-function parseCsv(data: Uint8Array): ParseResult {
+export type SheetRow = { rowNumber: number; cells: string[] };
+export type ReadResult = { ok: true; table: SheetRow[] } | { ok: false; error: string };
+
+function readCsv(data: Uint8Array): ReadResult {
   const text = new TextDecoder("utf-8").decode(data).replace(BOM_PREFIX, "");
   const result = Papa.parse<string[]>(text, { skipEmptyLines: false });
   if (result.errors.some((e) => e.type === "Quotes")) {
     return { ok: false, error: t.import.fileErrors.unreadable };
   }
-  return toRows(result.data.map((cells, index) => ({ rowNumber: index + 1, cells })));
+  return { ok: true, table: result.data.map((cells, index) => ({ rowNumber: index + 1, cells })) };
 }
 
-async function parseXlsx(data: Uint8Array): Promise<ParseResult> {
+async function readXlsx(data: Uint8Array, preferredSheet?: string): Promise<ReadResult> {
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer);
   } catch {
     return { ok: false, error: t.import.fileErrors.unreadable };
   }
-  const sheet = workbook.getWorksheet(PREFERRED_SHEET) ?? workbook.worksheets[0];
+  const sheet = (preferredSheet && workbook.getWorksheet(preferredSheet)) || workbook.worksheets[0];
   if (!sheet) return { ok: false, error: t.import.fileErrors.empty };
 
-  const table: { rowNumber: number; cells: string[] }[] = [];
+  const table: SheetRow[] = [];
   sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
     const cells: string[] = [];
     row.eachCell({ includeEmpty: true }, (cell, col) => {
@@ -124,19 +127,33 @@ async function parseXlsx(data: Uint8Array): Promise<ParseResult> {
     });
     table.push({ rowNumber, cells: Array.from(cells, (c) => c ?? "") });
   });
-  return toRows(table);
+  return { ok: true, table };
 }
 
-export async function parseImportFile(fileName: string, data: Uint8Array): Promise<ParseResult> {
+/**
+ * Membaca CSV/XLSX menjadi tabel sel teks (baris pertama = header). Dipakai
+ * impor anggota dan impor arsip kehadiran. XLSX memakai sheet `preferredSheet`
+ * bila ada, selain itu sheet pertama.
+ */
+export async function readSpreadsheet(
+  fileName: string,
+  data: Uint8Array,
+  preferredSheet?: string,
+): Promise<ReadResult> {
   if (data.byteLength > MAX_IMPORT_BYTES) {
     return { ok: false, error: t.import.fileErrors.tooLarge(MAX_IMPORT_BYTES / 1024) };
   }
   switch (fileExtension(fileName)) {
     case "csv":
-      return parseCsv(data);
+      return readCsv(data);
     case "xlsx":
-      return parseXlsx(data);
+      return readXlsx(data, preferredSheet);
     default:
       return { ok: false, error: t.import.fileErrors.unsupported };
   }
+}
+
+export async function parseImportFile(fileName: string, data: Uint8Array): Promise<ParseResult> {
+  const read = await readSpreadsheet(fileName, data, PREFERRED_SHEET);
+  return read.ok ? toRows(read.table) : read;
 }
