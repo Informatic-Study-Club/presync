@@ -18,6 +18,7 @@ import {
   updateSessionAction,
 } from "@/lib/academic/actions";
 import { getClassDetail, loadViewer } from "@/lib/academic/queries";
+import { ownResult } from "@/lib/assessment/service";
 import { classRecap } from "@/lib/attendance/service";
 import { toJakarta } from "@/lib/academic/time";
 import { requireSession } from "@/lib/auth/session";
@@ -57,6 +58,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
   const created = createdSchema.parse(await searchParams);
   const done = detail.sessions.filter((s) => s.kind === "regular" && s.status === "done").length;
   const recap = detail.canManage ? await classRecap(detail.id) : [];
+  const mine = detail.canManage ? null : await ownResult(session.user, detail.id);
 
   return (
     <div className="space-y-6">
@@ -79,7 +81,42 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
         {detail.description ? (
           <CardContent className="text-sm whitespace-pre-wrap">{detail.description}</CardContent>
         ) : null}
+        {detail.canManage ? (
+          <CardContent>
+            <Link href={`/kelas/${detail.id}/penilaian`} className="text-sm text-primary underline-offset-4 hover:underline">
+              {t.assessment.title}
+            </Link>
+          </CardContent>
+        ) : null}
       </Card>
+
+      {mine && mine.components.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.assessment.myResult}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+              {mine.components.map((comp) => (
+                <div key={comp.key} className="contents">
+                  <dt className="text-muted-foreground">
+                    {comp.name} ({comp.weight}%)
+                  </dt>
+                  <dd>{(mine.result.evaluation.componentValues[comp.key] ?? 0).toLocaleString("id-ID")}</dd>
+                </div>
+              ))}
+              <dt className="font-medium">{t.assessment.finalScore}</dt>
+              <dd className="font-medium">{mine.result.evaluation.finalScore.toLocaleString("id-ID")}</dd>
+            </dl>
+            <Badge variant={mine.result.status === "eligible" ? "secondary" : "destructive"}>
+              {t.assessment.status[mine.result.status]}
+            </Badge>
+            {mine.result.evaluation.reasons.length > 0 && !mine.result.override ? (
+              <p className="text-muted-foreground">{mine.result.evaluation.reasons.join("; ")}</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
