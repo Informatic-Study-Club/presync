@@ -9,6 +9,7 @@ import {
   attendanceByDivision,
   attendanceByMember,
   type BuildResult,
+  certificateRecipients,
   financeMonthly,
   membersReport,
 } from "@/lib/reports/builders";
@@ -29,6 +30,7 @@ const SCHEMAS = {
   "kehadiran-anggota": z.object({ anggota: z.uuid(), dari: date, sampai: date }),
   "kas-bulanan": z.object({ bulan: z.string().regex(MONTH_RE) }),
   tunggakan: z.object({}),
+  sertifikat: z.object({ kelas: z.uuid() }),
   anggota: z.object({
     divisi: optional(z.uuid()),
     batch: optional(z.string().regex(/^\d{2}$/)),
@@ -77,6 +79,11 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/lapor
     case "tunggakan":
       result = await arrearsReport(session);
       break;
+    case "sertifikat": {
+      const p = parsed.data as z.infer<(typeof SCHEMAS)["sertifikat"]>;
+      result = await certificateRecipients(session, p.kelas);
+      break;
+    }
     case "anggota": {
       const p = parsed.data as z.infer<(typeof SCHEMAS)["anggota"]>;
       result = await membersReport(session, { divisionId: p.divisi, batch: p.batch, status: p.status });

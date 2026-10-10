@@ -3,6 +3,7 @@ import { and, asc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { attendance, classes, divisions, enrollments, members, sessions, terms } from "@/db/schema";
 import { jakartaToUtc, toJakarta, todayInJakarta } from "@/lib/academic/time";
+import { classAssessment } from "@/lib/assessment/service";
 import { classRecap } from "@/lib/attendance/service";
 import { type AttendanceStatus, summarizeAttendance } from "@/lib/attendance/summary";
 import type { Session } from "@/lib/auth/session";
@@ -333,6 +334,34 @@ export async function membersReport(
       status: t.memberStatus[m.status],
       email: m.email,
       phone: m.phone,
+    })),
+  });
+}
+
+// ---------------------------------------------------------------- penerima sertifikat
+
+export async function certificateRecipients(session: Session, classId: string): Promise<BuildResult> {
+  const data = await classAssessment(session.user, classId);
+  if (!data) return forbidden;
+  const recipients = data.results.filter((x) => x.status === "eligible");
+  return limitRows({
+    ...base(session, `sertifikat-${data.cls.name}`, r.certificates.title, data.cls.termName),
+    meta: [
+      { label: r.attendanceClass.cls, value: data.cls.name },
+      { label: c.division, value: data.cls.divisionName },
+      { label: c.total, value: t.assessment.summary(recipients.length, data.results.length) },
+    ],
+    columns: [
+      { key: "code", label: c.code, type: "text" },
+      { key: "name", label: c.name, type: "text", width: 2.5 },
+      { key: "score", label: t.assessment.finalScore, type: "number" },
+      { key: "note", label: t.assessment.reasons, type: "text", width: 2.5 },
+    ],
+    rows: recipients.map((x) => ({
+      code: x.memberCode,
+      name: x.fullName,
+      score: x.evaluation.finalScore,
+      note: x.override ? `${t.assessment.overridden}: ${x.override.note}` : null,
     })),
   });
 }
