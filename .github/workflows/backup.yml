@@ -1,0 +1,112 @@
+# Cadangan database mingguan + uji pemulihan otomatis (docs/SERAH-TERIMA.md bagian 9).
+#
+# 1. pg_dump skema public dan drizzle (data aplikasi + riwayat migrasi), plus
+#    daftar akun auth.users TANPA password (setelah pemulihan bencana, anggota
+#    mengatur ulang password lewat "Lupa password").
+# 2. Arsip dienkripsi GPG AES-256 dengan BACKUP_PASSPHRASE.
+# 3. Arsip terenkripsi didekripsi lagi dan dipulihkan ke Postgres sementara,
+#    lalu diperiksa (scripts/backup/verify-restore.sql). Bila gagal, workflow
+#    merah dan cadangan dianggap tidak sah.
+# 4. Hanya arsip terenkripsi yang diunggah sebagai artifact (35 hari).
+#
+# PENTING: repo ini publik, jadi artifact bisa diunduh siapa pun yang login ke
+# GitHub. Keamanannya bergantung pada BACKUP_PASSPHRASE: acak, minimal 32
+# karakter, simpan di password manager. Tanpa passphrase, cadangan tidak bisa
+# dibuka. Unduh salinan bulanan ke penyimpanan milik organisasi.
+#
+# Secret di GitHub Environment "production": DATABASE_URL_DIRECT, BACKUP_PASSPHRASE.
+name: Cadangan database
+
+on:
+  schedule:
+    - cron: "0 19 * * 0" # Senin 02:00 WIB
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    services:
+      restore:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: restore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      RESTORE_URL: postgresql://postgres:restore@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Periksa secret
+        run: |
+          if [ -z "$DATABASE_URL_DIRECT" ] || [ ${#BACKUP_PASSPHRASE} -lt 32 ]; then
+            echo "::error::DATABASE_URL_DIRECT kosong atau BACKUP_PASSPHRASE kurang dari 32 karakter."
+            exit 1
+          fi
+
+      - name: Pasang klien PostgreSQL 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Buat cadangan
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p work
+          STAMP=$(TZ=Asia/Jakarta date +%Y-%m-%d)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          pg_dump "$DATABASE_URL_DIRECT" --format=custom --no-owner --no-privileges \
+            --schema=public --schema=drizzle --file=work/presync.dump
+          psql "$DATABASE_URL_DIRECT" -v ON_ERROR_STOP=1 -c \
+            "\copy (select id, email, created_at, last_sign_in_at from auth.users order by created_at) to 'work/auth_users.csv' with csv header"
+          tar -C work -czf "presync-$STAMP.tar.gz" presync.dump auth_users.csv
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --output "presync-$STAMP.tar.gz.gpg" "presync-$STAMP.tar.gz" <<< "$BACKUP_PASSPHRASE"
+          rm -rf work "presync-$STAMP.tar.gz"
+
+      - name: Uji pemulihan dari arsip terenkripsi
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p restore
+          gpg --batch --pinentry-mode loopback --passphrase-fd 0 \
+            --decrypt "presync-$STAMP.tar.gz.gpg" <<< "$BACKUP_PASSPHRASE" | tar -C restore -xzf -
+          psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -q -f scripts/backup/prepare-restore.sql
+          psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -c \
+            "\copy auth.users (id, email, created_at, last_sign_in_at) from 'restore/auth_users.csv' with csv header"
+          # Skema public sudah ada di database tujuan; buang entri CREATE/COMMENT
+          # SCHEMA public dari daftar agar --exit-on-error tidak gagal di sana.
+          pg_restore --list restore/presync.dump | grep -Ev ' (SCHEMA|COMMENT) - (SCHEMA )?public ' > restore/list.txt
+          pg_restore --dbname="$RESTORE_URL" --no-owner --no-privileges --exit-on-error \
+            --use-list=restore/list.txt restore/presync.dump
+          psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f scripts/backup/verify-restore.sql
+          rm -rf restore
+
+      - name: Unggah arsip terenkripsi
+        uses: actions/upload-artifact@v4
+        with:
+          name: presync-cadangan-${{ env.STAMP }}
+          path: presync-${{ env.STAMP }}.tar.gz.gpg
+          retention-days: 35
+          if-no-files-found: error
