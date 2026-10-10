@@ -492,6 +492,12 @@ export const id = {
       lastScans: "Pindaian terakhir",
       noScans: "Belum ada pindaian.",
       cameraError: "Kamera tidak bisa dibuka. Periksa izin kamera, atau gunakan pemindai/ketik kode.",
+      cameraDenied: "Izin kamera ditolak. Izinkan kamera untuk situs ini di pengaturan browser, lalu nyalakan lagi.",
+      cameraNotFound: "Kamera tidak ditemukan di perangkat ini. Gunakan pemindai USB/Bluetooth atau ketik kode.",
+      cameraInUse: "Kamera sedang dipakai aplikasi lain. Tutup aplikasi itu lalu coba lagi.",
+      cameraInsecure: "Kamera hanya bisa dipakai lewat HTTPS. Buka Presync dari alamat https://, bukan alamat IP lokal.",
+      cameraHint: "Dekatkan kartu 10-20 cm dengan barcode mendatar di tengah layar dan cukup cahaya.",
+      serverError: "Gagal menghubungi server. Periksa koneksi lalu pindai ulang.",
       backToSession: "Kembali ke sesi",
     },
     session: {

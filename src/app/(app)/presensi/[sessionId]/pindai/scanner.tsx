@@ -31,6 +31,16 @@ function deviceId(): string | null {
 
 type Entry = ScanResult & { key: number; raw: string; at: string };
 
+/** Pesan kamera yang spesifik, supaya petugas tahu langkah perbaikannya. */
+function cameraMessage(error: unknown): string {
+  if (typeof window !== "undefined" && !window.isSecureContext) return s.cameraInsecure;
+  const name = error instanceof Error ? error.name : "";
+  if (name === "NotAllowedError" || name === "SecurityError") return s.cameraDenied;
+  if (name === "NotFoundError" || name === "OverconstrainedError") return s.cameraNotFound;
+  if (name === "NotReadableError" || name === "AbortError") return s.cameraInUse;
+  return s.cameraError;
+}
+
 const TONE = {
   recorded: "border-emerald-500/60 bg-emerald-500/15",
   duplicate: "border-amber-500/60 bg-amber-500/15",
@@ -40,7 +50,7 @@ const TONE = {
 export function AttendanceScanner({ sessionId }: { sessionId: string }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [cameraOn, setCameraOn] = useState(false);
-  const [cameraError, setCameraError] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [value, setValue] = useState("");
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -53,7 +63,10 @@ export function AttendanceScanner({ sessionId }: { sessionId: string }) {
       const trimmed = raw.trim();
       if (!trimmed) return;
       startTransition(async () => {
-        const result = await scanAction({ sessionId, raw: trimmed, source, deviceId: deviceId() });
+        // Galat jaringan/server tidak boleh membuat pemindai diam tanpa kabar.
+        const result: ScanResult = await scanAction({ sessionId, raw: trimmed, source, deviceId: deviceId() }).catch(
+          (): ScanResult => ({ kind: "rejected", message: s.serverError }),
+        );
         counter.current += 1;
         const at = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
         setEntries((prev) => [{ ...result, key: counter.current, raw: trimmed, at }, ...prev].slice(0, 15));
@@ -132,18 +145,34 @@ export function AttendanceScanner({ sessionId }: { sessionId: string }) {
       </div>
 
       <div className="space-y-2">
-        <Button type="button" variant="outline" onClick={() => setCameraOn((on) => !on)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setCameraError(null);
+            setCameraOn((on) => !on);
+            // Kembalikan fokus supaya pemindai USB/Bluetooth tetap mengetik ke kolom kode.
+            inputRef.current?.focus();
+          }}
+        >
           {cameraOn ? s.stopCamera : s.startCamera}
         </Button>
-        {cameraError ? <p className="text-sm text-destructive">{s.cameraError}</p> : null}
+        {cameraError ? <p className="text-sm text-destructive">{cameraError}</p> : null}
+        {cameraOn && !cameraError ? <p className="text-xs text-muted-foreground">{s.cameraHint}</p> : null}
         {cameraOn ? (
           <div className="mx-auto max-w-sm overflow-hidden rounded-lg">
             <Scanner
               formats={["code_128", "qr_code"]}
               allowMultiple
               scanDelay={800}
-              constraints={{ facingMode: "environment" }}
-              onError={() => setCameraError(true)}
+              // Code 128 butuh resolusi tinggi: pada 640x480 (bawaan browser)
+              // garis barcode kartu terlalu rapat untuk terbaca.
+              constraints={{
+                facingMode: "environment",
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+              }}
+              onError={(error) => setCameraError(cameraMessage(error))}
               onScan={(codes) => {
                 const raw = codes[0]?.rawValue;
                 if (!raw) return;
