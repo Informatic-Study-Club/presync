@@ -23,7 +23,7 @@ export default async function MyInvoicesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">{fm.title}</h1>
+        <h1>{fm.title}</h1>
         <p className="text-sm text-muted-foreground">{fm.description}</p>
       </div>
 

@@ -37,7 +37,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/kas/buku"
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">{l.title}</h1>
+        <h1>{l.title}</h1>
         <p className="text-sm text-muted-foreground">{l.description}</p>
       </div>
       <FinanceNav active="/kas/buku" />

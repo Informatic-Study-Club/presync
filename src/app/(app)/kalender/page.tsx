@@ -59,7 +59,7 @@ export default async function CalendarPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">{t.academic.calendar.title}</h1>
+          <h1>{t.academic.calendar.title}</h1>
           <p className="text-sm text-muted-foreground">{t.academic.calendar.description}</p>
         </div>
         {can(session.user, "calendar.manage") ? (

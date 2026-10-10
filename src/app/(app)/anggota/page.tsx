@@ -44,7 +44,7 @@ export default async function MembersPage({ searchParams }: PageProps<"/anggota"
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">{t.members.title}</h1>
+        <h1>{t.members.title}</h1>
         <Button
           variant="outline"
           size="sm"

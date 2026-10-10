@@ -32,7 +32,7 @@ export default async function ClassesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">{c.title}</h1>
+        <h1>{c.title}</h1>
         {managed.length > 0 ? (
           <div className="flex gap-2">
             <Button size="sm" render={<Link href="/kelas/baru" />} nativeButton={false}>

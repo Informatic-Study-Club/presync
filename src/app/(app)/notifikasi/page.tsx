@@ -28,7 +28,7 @@ export default async function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">{n.title}</h1>
+        <h1>{n.title}</h1>
         <p className="text-sm text-muted-foreground">{n.description}</p>
       </div>
 

@@ -42,7 +42,7 @@ export default async function AssessmentPage({ params }: PageProps<"/kelas/[id]/
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">{a.title}</h1>
+          <h1>{a.title}</h1>
           <p className="text-sm text-muted-foreground">
             <Link href={`/kelas/${cls.id}`} className="hover:underline">
               {cls.name}

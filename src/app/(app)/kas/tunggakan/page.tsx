@@ -20,7 +20,7 @@ export default async function ArrearsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{a.title}</h1>
+      <h1>{a.title}</h1>
       <FinanceNav active="/kas/tunggakan" />
       <Card>
         <CardContent className="pt-4">

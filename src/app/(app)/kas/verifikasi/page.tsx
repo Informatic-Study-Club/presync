@@ -24,7 +24,7 @@ export default async function VerifyPaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{v.title}</h1>
+      <h1>{v.title}</h1>
       <FinanceNav active="/kas/verifikasi" />
       {pending.length === 0 ? (
         <p className="text-sm text-muted-foreground">{v.empty}</p>

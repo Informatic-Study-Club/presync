@@ -21,7 +21,7 @@ export default async function ScannerPage({ params }: PageProps<"/presensi/[sess
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">{t.attendance.scanner.title}</h1>
+          <h1>{t.attendance.scanner.title}</h1>
           <p className="text-sm text-muted-foreground">{dashboard.session.title}</p>
         </div>
         <Link href={`/presensi/${id.data}`} className="text-sm text-primary underline-offset-4 hover:underline">

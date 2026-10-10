@@ -48,7 +48,7 @@ export default async function SessionAttendancePage({ params }: PageProps<"/pres
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">{session.title}</h1>
+          <h1>{session.title}</h1>
           <p className="text-sm text-muted-foreground">
             {dateTime.format(session.startsAt)} · {session.className ?? session.divisionName ?? t.academic.allDivisions}
           </p>
