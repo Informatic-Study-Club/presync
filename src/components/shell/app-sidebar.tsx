@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { activeHref, type NavGroup } from "@/lib/navigation";
+import { initials } from "@/components/shell/initials";
 import { NAV_ICONS } from "@/components/shell/nav-icons";
 import { id as t } from "@/messages/id";
 
@@ -20,11 +21,6 @@ type Props = {
   profile: SidebarProfile;
   logoutAction: () => Promise<void>;
 };
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? (parts.at(-1)?.[0] ?? "") : "")).toUpperCase();
-}
 
 function Brand() {
   return (
@@ -132,7 +128,7 @@ export function AppSidebar({ groups, profile, logoutAction }: Props) {
 
   const content = (onNavigate?: () => void) => (
     <>
-      <div className="flex h-16 shrink-0 items-center px-3">
+      <div className="flex h-14 shrink-0 items-center border-b px-3 lg:h-16">
         <Brand />
       </div>
       <NavList groups={groups} onNavigate={onNavigate} />

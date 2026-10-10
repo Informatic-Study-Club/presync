@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { AppHeader } from "@/components/shell/app-header";
 import { AppSidebar } from "@/components/shell/app-sidebar";
+import { initials } from "@/components/shell/initials";
 import { ROLES } from "@/lib/authz";
 import { logoutAction } from "@/lib/auth/actions";
 import { requireSession } from "@/lib/auth/session";
@@ -16,6 +18,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   // Peran tertinggi yang dimiliki (urutan ROLES: admin lebih dulu).
   const topRole = ROLES.find((r) => user.roles.includes(r)) ?? "anggota";
+  const today = new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -25,7 +34,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         logoutAction={logoutAction}
       />
       <div className="flex flex-1 flex-col lg:pl-64">
-        <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+        <AppHeader today={today} initials={initials(member.fullName)} />
+        <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           {children}
         </main>
       </div>
