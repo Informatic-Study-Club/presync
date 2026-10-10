@@ -7,7 +7,8 @@ Dokumen utama:
 - [`CLAUDE.md`](CLAUDE.md): ringkasan proyek, aturan wajib, dan perintah.
 - [`docs/ARSITEKTUR.md`](docs/ARSITEKTUR.md): keputusan teknis beserta alasannya.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): tahap pembangunan dan statusnya.
-- [`docs/SERAH-TERIMA.md`](docs/SERAH-TERIMA.md): layanan, cara deploy, rotasi key, jadwal perawatan.
+- [`docs/SERAH-TERIMA.md`](docs/SERAH-TERIMA.md): layanan, deploy dari nol, rotasi key, cadangan, jadwal perawatan.
+- [`docs/PANDUAN-KOORDINATOR.md`](docs/PANDUAN-KOORDINATOR.md) dan [`docs/PANDUAN-BENDAHARA.md`](docs/PANDUAN-BENDAHARA.md): panduan singkat per peran.
 
 ## Menjalankan secara lokal
 

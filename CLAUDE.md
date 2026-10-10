@@ -58,6 +58,7 @@ bun run db:migrate             # jalankan migrasi (pakai DATABASE_URL_DIRECT)
 bun run db:check-rls           # cek RLS, policy, dan API publik Supabase
 bun run seed:divisi            # isi tiga divisi (idempoten)
 bun run buat-admin --email ... # buat admin pertama; argumen lengkap di scripts/buat-admin.ts
+bun run telegram:webhook       # pasang webhook bot Telegram ke APP_URL
 ```
 
 Skrip di `scripts/` dijalankan Bun di luar Next.js, jadi tidak boleh mengimpor modul yang memakai `server-only`.

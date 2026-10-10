@@ -422,9 +422,9 @@ Batas dan syarat layanan bisa berubah. Cek ulang sebelum peluncuran dan secara b
 | Pertemuan belum terisi dihitung sebagai tidak hadir | Status sesi, Tidak Hadir hanya untuk sesi `done` |
 | Resend 100 email/hari | Outbox, digest, kanal kedua, undangan bertahap |
 | Supabase gratis di-pause saat tidak aktif | Ping cron harian |
-| Tidak ada cadangan otomatis di paket gratis | Jangan mengandalkannya; jadwalkan ekspor `pg_dump` berkala (GitHub Actions) ke penyimpanan terenkripsi dan uji pemulihannya |
+| Tidak ada cadangan otomatis di paket gratis | Workflow `backup.yml` mingguan: `pg_dump` terenkripsi GPG + uji pemulihan otomatis ke Postgres sementara. Password akun tidak dicadangkan (anggota memakai "Lupa password" setelah pemulihan bencana) |
 | Vercel Hobby: non-komersial dan akun personal | Akun organisasi bersama, cek ulang saat gateway aktif, cadangan Cloudflare Pages |
-| Cron Hobby hanya harian | GitHub Actions atau `pg_cron` + `pg_net` untuk jadwal rapat |
+| Cron Hobby hanya harian | GitHub Actions tiap 15 menit (`pengingat.yml`). Workflow terjadwal di repo publik nonaktif setelah 60 hari tanpa aktivitas: cek bulanan |
 | Verifikasi provider gateway | Periksa persyaratan sejak dini |
 | Domain lupa diperpanjang | Auto-renew, multi-tahun, pengingat jatuh tempo |
 | Pergantian pengurus | Email organisasi, password manager bersama, `SERAH-TERIMA.md` |

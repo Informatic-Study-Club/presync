@@ -116,11 +116,11 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 9: Penutupan dan serah terima
 
-- [ ] `SERAH-TERIMA.md` terisi lengkap (pemilik akun, jatuh tempo, kontak)
-- [ ] Ekspor `pg_dump` berkala dan uji pemulihan
-- [ ] Panduan singkat untuk koordinator dan bendahara
-- [ ] Cek ulang batas free tier dan syarat layanan (Vercel Hobby, Resend, Supabase)
-- [ ] Pelatihan satu pemelihara teknis cadangan
+- [ ] `SERAH-TERIMA.md` terisi lengkap (pemilik akun, jatuh tempo, kontak) — *bagian teknis lengkap (env, runbook deploy dari nol, rotasi, cadangan); sisa kolom `[ISI]` diisi pengurus di password manager*
+- [ ] Ekspor `pg_dump` berkala dan uji pemulihan — *workflow mingguan siap (dump terenkripsi + uji pemulihan otomatis); skrip verifikasi diuji lokal; perlu dijalankan sekali di GitHub setelah secret diisi*
+- [x] Panduan singkat untuk koordinator dan bendahara (`docs/PANDUAN-KOORDINATOR.md`, `docs/PANDUAN-BENDAHARA.md`)
+- [x] Cek ulang batas free tier dan syarat layanan (Vercel Hobby, Resend, Supabase, Upstash, GitHub) — dicek 10 Oktober 2026, dicatat di SERAH-TERIMA bagian 2
+- [ ] Pelatihan satu pemelihara teknis cadangan — *checklist di SERAH-TERIMA bagian 9*
 
 **Selesai bila:** pemelihara teknis lain bisa melakukan deploy dan rotasi key hanya dengan membaca dokumen.
 
