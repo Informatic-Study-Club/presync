@@ -255,6 +255,13 @@ Rancangan:
 
 Catatan data awal: rumus sertifikat Web Dev merujuk sel yang salah (kolom O) sehingga bobot absen tidak terhitung. Pada data saat ini hasilnya sama (17 dari 36 lolos), tetapi Presync menghitung bobot absen dengan benar.
 
+Detail implementasi (tahap 8):
+- Nilai komponen: `score` = nilai 0-100 (kosong dihitung 0), `done_flag` = 100/0, `attendance` = rasio hadir/sesi selesai x 100 **tanpa pembulatan** (agar skor akhir tidak bergeser 0,01 di sekitar ambang). Skor akhir = jumlah bobot x nilai / 100, dibulatkan 2 desimal. Satu kelas paling banyak satu komponen kehadiran.
+- `requireAllComponents` berarti `score` sudah terisi atau `done_flag` dicentang. Total bobot selain 100 membuat semua anggota tidak lolos sampai diperbaiki.
+- Aturan disimpan sebagai JSON di `certificate_rules` dan selalu dibaca lewat `parseRule` (Zod); JSON rusak dianggap aturan kosong.
+- Penimpaan status (`certificate_overrides`) dan penghapusannya tercatat di `audit_log`. Daftar penerima diekspor lewat sistem laporan (`/laporan/sertifikat`).
+- Anggota melihat nilai dan status sertifikatnya sendiri di halaman kelas.
+
 ## 11. Kas dan payment gateway
 
 ### Tahap awal: transfer manual

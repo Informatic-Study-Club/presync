@@ -105,14 +105,14 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 8: Penilaian dan sertifikat
 
-- [ ] Komponen nilai dan bobot per kelas
-- [ ] Input nilai oleh koordinator
-- [ ] Aturan sertifikat per kelas (JSON tervalidasi Zod)
-- [ ] `evaluateCertificate` dengan tes unit, termasuk kasus Web Dev (izin maksimal 3, skor minimal 70)
-- [ ] Penimpaan status dengan catatan dan audit log
-- [ ] Ekspor daftar penerima (PDF/xlsx)
+- [x] Komponen nilai dan bobot per kelas (templat Web Development tersedia)
+- [x] Input nilai oleh koordinator
+- [x] Aturan sertifikat per kelas (JSON tervalidasi Zod)
+- [x] `evaluateCertificate` dengan tes unit, termasuk kasus Web Dev (izin maksimal 3, skor minimal 70)
+- [x] Penimpaan status dengan catatan dan audit log
+- [x] Ekspor daftar penerima (PDF/xlsx/csv lewat `/laporan/sertifikat`)
 
-**Selesai bila:** hasil evaluasi program Web Dev sekarang (17 dari 36 lolos) sama dengan hasil di Google Sheets.
+**Selesai bila:** hasil evaluasi program Web Dev sekarang (17 dari 36 lolos) sama dengan hasil di Google Sheets. *(Perlu nilai asli dimasukkan di staging. Catatan: Presync menghitung bobot absen yang dilewatkan rumus Sheets, jadi selisih hasil perlu dicek per anggota.)*
 
 ## Tahap 9: Penutupan dan serah terima
 
