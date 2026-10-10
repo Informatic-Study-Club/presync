@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
     // body fungsi Vercel 4,5 MB, jadi jangan dinaikkan lagi.
     serverActions: { bodySizeLimit: "4.5mb" },
   },
+  // Font PDF laporan dibaca dari disk saat runtime (src/lib/reports/render.tsx).
+  outputFileTracingIncludes: {
+    "/laporan/**": ["./node_modules/@fontsource/inter/files/inter-latin-{400,700}-normal.woff"],
+  },
   turbopack: {
     rules: {
       "*.css": {
