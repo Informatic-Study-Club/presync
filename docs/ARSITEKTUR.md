@@ -24,7 +24,7 @@ Prioritas desain: **sederhana, aman, murah, bisa diwariskan.** Tim kurang kuat d
 | 1 | Next.js + TypeScript satu codebase | UI dan API satu tempat, ekosistem besar | Semua logika di server Next.js |
 | 2 | Supabase sebagai Postgres, Auth, Storage, Realtime | Free tier cukup, Postgres standar sehingga portabel | Risiko pause saat tidak aktif (lihat bagian 17) |
 | 3 | Drizzle ORM, bukan supabase-js + RPC | Tim kurang kuat SQL, logika atomik lebih mudah di TypeScript | Koneksi melewati RLS, otorisasi di kode server |
-| 4 | RLS aktif tanpa policy | Menutup API publik bila anon key bocor | Semua akses lewat server |
+| 4 | RLS aktif tanpa policy | Menutup API publik bila publishable key bocor | Semua akses lewat server |
 | 5 | Otorisasi terpusat `can()` | Cegah pengecekan role tersebar | Satu tempat untuk diaudit dan dites |
 | 6 | Ledger kas hanya-tambah | Laporan bisa dipercaya dan diaudit | Koreksi lewat `reversal_of` |
 | 7 | Outbox notifikasi + adapter | Kuota email 100/hari, kanal bisa diganti | Pengiriman tertunda sampai worker jalan |
@@ -290,7 +290,7 @@ CREATE TRIGGER transactions_append_only
 - Transaksi koreksi berjenis **kebalikan** dari transaksi asal dengan nominal sama, dibukukan pada tanggal koreksi. Koreksi tidak bisa dikoreksi lagi, dan satu transaksi hanya sekali dikoreksi (`reversal_of` unik). Mengoreksi transaksi dari pembayaran tagihan membuat pembayaran berstatus `reversed` dan tagihan kembali `unpaid`.
 - View `finance_balance`, `finance_monthly`, `member_arrears` dibuat dengan `security_invoker = true` dan hak `anon`/`authenticated` dicabut. Tanpa itu, view di skema public bisa dibaca lewat API publik Supabase meski tabelnya ber-RLS. `bun run db:check-rls` ikut menguji view.
 - **Tutup buku**: `finance_period_closures` per bulan, harus berurutan. Setelah ditutup, transaksi baru (termasuk verifikasi dan koreksi) tidak boleh bertanggal di bulan itu. Saldo penutupan disimpan sebagai catatan; sumber kebenaran tetap ledger.
-- Bukti transfer diunggah lewat Server Action (maks. 4 MB, di bawah batas body Vercel 4,5 MB), jenis file dicek dari isi (JPG/PNG/WEBP/PDF), lalu disimpan di bucket privat `bukti-pembayaran` dengan service role. Bucket dibuat otomatis bila belum ada.
+- Bukti transfer diunggah lewat Server Action (maks. 4 MB, di bawah batas body Vercel 4,5 MB), jenis file dicek dari isi (JPG/PNG/WEBP/PDF), lalu disimpan di bucket privat `bukti-pembayaran` dengan secret key (peran service_role). Bucket dibuat otomatis bila belum ada.
 - Pembayaran tunai dicatat bendahara langsung sebagai pembayaran terverifikasi (tanpa bukti) dalam satu transaksi.
 
 ### Siap gateway
@@ -380,6 +380,8 @@ ALTER TABLE members ENABLE ROW LEVEL SECURITY; -- ulangi untuk semua tabel di sk
 ```
 
 - Cookie sesi terikat ke host `presync...`, tanpa atribut domain `.informaticstudyclub.com`.
+- Kunci API Supabase memakai format baru: publishable key (`sb_publishable_...`) untuk Auth dan Realtime di browser, secret key (`sb_secret_...`) hanya di server untuk Auth Admin dan Storage. Kunci lama `anon`/`service_role` berbentuk JWT sudah usang dan ditolak validasi env. Kedua kunci baru bisa dirotasi sendiri-sendiri tanpa mencabut sesi login.
+- Token sesi ditandatangani kunci JWT asimetris (ECC P-256). `getClaims()` di `proxy.ts` dan `requireSession()` memverifikasinya secara lokal lewat JWKS, sehingga tidak ada panggilan ke server Auth di setiap request.
 - Secret hanya di environment variable (terpisah per lingkungan). Endpoint cron memeriksa header `Authorization: Bearer <CRON_SECRET>`.
 - Bukti pembayaran di bucket privat, diakses lewat signed URL berumur pendek.
 - `audit_log` mencatat: verifikasi dan koreksi kas, perubahan role, absen manual, impor, penerbitan ulang kartu, penimpaan status sertifikat.

@@ -30,7 +30,7 @@ Batas di bawah dicek dari halaman resmi pada **10 Oktober 2026**. Cek ulang seti
 | Cloudflare | DNS, Turnstile, Email Routing | Gratis | email bersama isc | DNSSEC aktif |
 | GitHub Organization | Repo `presync`, GitHub Actions | Gratis | email bersama isc | Workflow terjadwal di repo publik **nonaktif otomatis setelah 60 hari tanpa aktivitas**; artifact bisa diunduh siapa pun yang login |
 | Vercel | Hosting aplikasi | Hobby | email bersama isc | **Hanya non-komersial/pribadi**; cron 1x sehari (presisi ±59 menit); fungsi maks. 300 detik; 1 juta invocation/bulan; log runtime 1 jam |
-| Supabase (production) | Database, Auth, Storage, Realtime | Gratis | email bersama isc | Maks. 2 proyek aktif; DB 500 MB; storage 1 GB; egress 5 GB; 50.000 MAU; **di-pause setelah 7 hari tidak aktif**; **tanpa backup otomatis** |
+| Supabase (production) | Database, Auth, Storage, Realtime | Gratis | email bersama isc | Maks. 2 proyek aktif; DB 500 MB; storage 1 GB; egress 5 GB; 50.000 MAU; Realtime 200 koneksi serentak dan 2 juta pesan/bulan; **di-pause setelah 7 hari tidak aktif**; **tanpa backup otomatis** |
 | Supabase (staging) | Lingkungan uji | Gratis | email bersama isc | Sama seperti di atas (memakai slot proyek kedua) |
 | Resend | Email | Gratis | email bersama isc | 3.000 email/bulan, **100/hari**, 3 domain, log 30 hari, 1 webhook |
 | Upstash Redis | Rate limit | Gratis | email bersama isc | 500.000 perintah/bulan, data 256 MB |
@@ -60,8 +60,8 @@ Nilai aplikasi disimpan di Vercel (terpisah untuk **Production** dan **Preview/s
 | `APP_URL` | URL dasar aplikasi lingkungan itu | Vercel; GitHub (repo secret, production) |
 | `DATABASE_URL` | Connection string **pooler** Supabase (mode transaction, port 6543) | Vercel |
 | `DATABASE_URL_DIRECT` | Connection string langsung (port 5432) | GitHub Environment `staging`/`production`; lokal untuk migrasi |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | URL dan anon key proyek | Vercel; GitHub Environment (untuk `db:check-rls`) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (**sangat rahasia**) | Vercel |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | URL dan **publishable key** proyek (`sb_publishable_...`) | Vercel; GitHub Environment (untuk `db:check-rls`) |
+| `SUPABASE_SECRET_KEY` | **Secret key** (`sb_secret_...`, **sangat rahasia**, melewati RLS) | Vercel |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Anti-bot Cloudflare | Vercel |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limit (wajib di production) | Vercel |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` | Email lewat Resend | Vercel |
@@ -80,7 +80,9 @@ Membuat secret acak: `openssl rand -base64 48`.
 
 Urutan lengkap untuk satu lingkungan. Kerjakan untuk **staging dulu**, uji, baru production.
 
-1. **Supabase**: buat proyek (region Singapura). Catat URL, anon key, service role key, connection string pooler dan langsung.
+1. **Supabase**: buat proyek (region Singapura). Catat URL, connection string pooler dan langsung.
+   - **Settings > API Keys**: buat publishable key dan secret key (format `sb_publishable_...` dan `sb_secret_...`). Kunci lama `anon`/`service_role` (berbentuk JWT) sudah usang dan dihentikan Supabase; Presync menolaknya. Bila proyek masih menampilkan kunci lama, nonaktifkan setelah kunci baru terpasang.
+   - **Settings > JWT Keys**: pastikan token login ditandatangani **kunci asimetris (ECC P-256)**, bukan JWT secret lama. Dengan begitu `getClaims()` memverifikasi sesi secara lokal lewat JWKS tanpa memanggil server Auth di setiap request. Bila masih memakai JWT secret lama: buat kunci standby ECC, **Rotate**, tunggu minimal 1 jam 15 menit, lalu cabut kunci lama.
 2. **Supabase Auth** (Authentication > Settings):
    - Matikan **Allow new users to sign up**. Aktifkan **MFA TOTP**.
    - Site URL = `APP_URL`; Redirect URL berisi `<APP_URL>/auth/confirm`.
@@ -97,7 +99,7 @@ Urutan lengkap untuk satu lingkungan. Kerjakan untuk **staging dulu**, uji, baru
    - Resend: tambah webhook `<APP_URL>/api/webhooks/resend` (event `email.bounced`, `email.complained`), isi `RESEND_WEBHOOK_SECRET`.
 8. **GitHub** (khusus production):
    - Repo secret `APP_URL` dan `CRON_SECRET` untuk workflow **Pengingat**.
-   - Environment `production`: `DATABASE_URL_DIRECT`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `BACKUP_PASSPHRASE`. Beri environment ini reviewer wajib.
+   - Environment `production`: `DATABASE_URL_DIRECT`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `BACKUP_PASSPHRASE`. Beri environment ini reviewer wajib.
    - Jalankan manual workflow **Cadangan database** sekali; harus hijau.
 9. **Uji asap**: login + 2FA, impor beberapa anggota uji (staging), buat kelas, pindai kartu, kirim push uji, unduh satu laporan.
 
@@ -118,7 +120,9 @@ Lakukan saat pengurus berganti, saat ada kecurigaan kebocoran, dan minimal sekal
 | `RESEND_API_KEY` | Buat key baru di Resend, ganti di Vercel, hapus key lama | Tidak ada bila diganti berurutan |
 | API key SMTP Supabase | Buat key baru, ganti di Supabase, hapus key lama | Email auth berhenti sementara bila terlambat diganti |
 | `RESEND_WEBHOOK_SECRET` | Rotasi signing secret webhook di Resend, ganti di Vercel | Bounce/spam tidak tercatat selama tidak sinkron |
-| `SUPABASE_SERVICE_ROLE_KEY`, anon key | Reset JWT secret di Supabase, ganti di Vercel dan GitHub | **Semua sesi login dicabut**, jadwalkan di luar jam pakai |
+| `SUPABASE_SECRET_KEY` | Buat secret key baru (Settings > API Keys), ganti di Vercel, pastikan aplikasi berjalan, lalu hapus key lama (penghapusan permanen) | Tidak ada bila diganti berurutan; sesi login tetap |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Sama seperti secret key, ganti di Vercel dan GitHub Environment, lalu deploy ulang (nilai `NEXT_PUBLIC_` tertanam saat build) | Tidak ada bila diganti berurutan |
+| Kunci tanda tangan JWT (Settings > JWT Keys) | Buat kunci standby, **Rotate**, tunggu minimal 1 jam 15 menit, lalu cabut kunci lama | Sesi tetap; token lama berlaku sampai kedaluwarsa. Cabut seketika hanya bila bocor (semua orang harus login ulang) |
 | `CRON_SECRET` | Ganti di Vercel dan secret repository GitHub | Cron gagal bila tidak sinkron |
 | `CARD_SECRET` | **Jangan diganti sembarangan**: semua kartu QR dan "Kartu Saya" tidak berlaku. Hanya bila bocor, lalu terbitkan ulang kartu | Kartu bertanda tangan harus dicetak ulang |
 | Token Telegram, `TELEGRAM_WEBHOOK_SECRET` | Cabut token lewat BotFather, buat baru, ganti di Vercel, jalankan `bun run telegram:webhook` | Tautan akun tetap |
@@ -192,7 +196,7 @@ Uji pemulihan ke staging minimal sekali per semester. Lokasi salinan bulanan: `[
 | Email tidak terkirim | Kuota harian Resend, status domain `mail.` (SPF/DKIM), API key, antrean `failed`, daftar `email_suppressions` |
 | Email tidak masuk | Folder spam, DMARC/SPF/DKIM, bounce di Resend |
 | Scan tidak tercatat | Jendela waktu sesi, koordinator berhak, anggota terdaftar di kelas, kartu aktif, rate limit |
-| Login gagal massal | Turnstile, rate limit, status Supabase Auth, kunci JWT yang baru dirotasi |
+| Login gagal massal | Turnstile, rate limit, status Supabase Auth, kunci JWT yang baru dicabut, publishable key yang dinonaktifkan |
 | Workflow cadangan merah | Baca langkah yang gagal; `BACKUP_PASSPHRASE` minimal 32 karakter; versi `pg_dump` harus sama/lebih baru dari server |
 | Domain mati | Jatuh tempo domain di registrar |
 | Dugaan kebocoran data | Rotasi semua key, cabut sesi, periksa `audit_log`, informasikan anggota terdampak |
