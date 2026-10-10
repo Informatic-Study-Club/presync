@@ -25,6 +25,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/anggota/impor", label: t.nav.import, show: can(user, "member.import") },
     { href: "/presensi/arsip", label: t.nav.archive, show: can(user, "member.import") },
     { href: "/admin/permintaan-data", label: t.nav.dataRequests, show: can(user, "privacy.manage") },
+    { href: "/laporan", label: t.nav.reports, show: true },
     { href: "/notifikasi", label: t.nav.notifications, show: true },
     { href: "/privasi", label: t.nav.privacy, show: true },
   ].filter((l) => l.show);
