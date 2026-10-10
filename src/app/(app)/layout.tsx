@@ -1,60 +1,34 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
-import { can, canInAnyDivision } from "@/lib/authz";
+import { AppSidebar } from "@/components/shell/app-sidebar";
+import { ROLES } from "@/lib/authz";
 import { logoutAction } from "@/lib/auth/actions";
 import { requireSession } from "@/lib/auth/session";
 import { listDivisions } from "@/lib/members/queries";
+import { buildNavigation } from "@/lib/navigation";
 import { id as t } from "@/messages/id";
 
-// Kerangka halaman setelah login. Menu hanya petunjuk; setiap halaman tetap
-// memeriksa sesi dan izinnya sendiri.
+// Kerangka halaman setelah login: sidebar berisi menu sesuai izin (RBAC).
+// Menu hanya petunjuk; setiap halaman tetap memeriksa sesi dan izinnya sendiri.
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { user, member } = await requireSession();
   const divisionIds = (await listDivisions()).map((d) => d.id);
+  const groups = buildNavigation(user, divisionIds);
 
-  const links = [
-    { href: "/", label: t.nav.home, show: true },
-    { href: "/kalender", label: t.nav.calendar, show: true },
-    { href: "/kelas", label: t.nav.classes, show: true },
-    { href: "/checkin", label: t.nav.checkin, show: true },
-    { href: "/kartu", label: t.nav.myCard, show: true },
-    { href: "/kas", label: t.nav.bills, show: true },
-    { href: "/kas/kelola", label: t.nav.finance, show: can(user, "finance.read") },
-    { href: "/anggota", label: t.nav.members, show: canInAnyDivision(user, "member.list", divisionIds) },
-    { href: "/anggota/impor", label: t.nav.import, show: can(user, "member.import") },
-    { href: "/presensi/arsip", label: t.nav.archive, show: can(user, "member.import") },
-    { href: "/admin/permintaan-data", label: t.nav.dataRequests, show: can(user, "privacy.manage") },
-    { href: "/laporan", label: t.nav.reports, show: true },
-    { href: "/notifikasi", label: t.nav.notifications, show: true },
-    { href: "/privasi", label: t.nav.privacy, show: true },
-  ].filter((l) => l.show);
+  // Peran tertinggi yang dimiliki (urutan ROLES: admin lebih dulu).
+  const topRole = ROLES.find((r) => user.roles.includes(r)) ?? "anggota";
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-primary">
-            {t.app.name}
-          </Link>
-          <nav className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-sm">
-            {links.map((l) => (
-              <Link key={l.href} href={l.href} className="text-muted-foreground hover:text-foreground">
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden text-muted-foreground sm:inline">{member.fullName}</span>
-            <form action={logoutAction}>
-              <Button type="submit" variant="outline" size="sm">
-                {t.auth.logout}
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 p-4 sm:p-6">{children}</main>
+    <div className="flex min-h-full flex-1 flex-col">
+      <AppSidebar
+        groups={groups}
+        profile={{ fullName: member.fullName, memberCode: member.memberCode, roleLabel: t.roles[topRole] }}
+        logoutAction={logoutAction}
+      />
+      <div className="flex flex-1 flex-col lg:pl-64">
+        <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

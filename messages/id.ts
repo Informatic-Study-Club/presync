@@ -66,6 +66,9 @@ export const id = {
     division: "Divisi",
     batch: "Batch",
     roles: "Peran",
+    subtitle: "Ringkasan akun dan akses cepat ke fitur Presync.",
+    profile: "Profil anggota",
+    quickAccess: "Akses cepat",
   },
   roles: {
     admin: "Admin",
@@ -95,6 +98,16 @@ export const id = {
     finance: "Kas",
     notifications: "Notifikasi",
     reports: "Laporan",
+    groups: {
+      main: "Utama",
+      finance: "Keuangan",
+      manage: "Kelola",
+      admin: "Admin",
+      account: "Akun",
+    },
+    mainLabel: "Navigasi utama",
+    openMenu: "Buka menu",
+    closeMenu: "Tutup menu",
   },
   errors: {
     forbidden: "Anda tidak berwenang melakukan ini.",
