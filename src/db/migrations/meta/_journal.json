@@ -57,6 +57,13 @@
       "when": 1791570363663,
       "tag": "0007_notifikasi_kanal",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791598504184,
+      "tag": "0008_penilaian_sertifikat",
+      "breakpoints": true
     }
   ]
 }

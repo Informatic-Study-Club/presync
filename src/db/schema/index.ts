@@ -5,3 +5,4 @@ export * from "./notifications";
 export * from "./academic";
 export * from "./attendance";
 export * from "./finance";
+export * from "./assessment";
