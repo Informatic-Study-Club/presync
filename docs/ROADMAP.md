@@ -95,11 +95,11 @@ Prinsip: selesaikan satu tahap sampai bisa dipakai sebelum pindah ke tahap berik
 
 ## Tahap 7: Rekap dan laporan
 
-- [ ] Rekap kehadiran (per anggota, kelas, divisi, periode, dengan persentase)
-- [ ] Laporan kas dan tunggakan
-- [ ] Daftar anggota per divisi atau batch
-- [ ] Ekspor PDF (`@react-pdf/renderer`), xlsx, csv
-- [ ] Batas rentang data per laporan
+- [x] Rekap kehadiran (per anggota, kelas, divisi, periode, dengan persentase)
+- [x] Laporan kas dan tunggakan
+- [x] Daftar anggota per divisi atau batch
+- [x] Ekspor PDF (`@react-pdf/renderer`, font Inter tertanam), xlsx, csv
+- [x] Batas rentang data per laporan (366 hari, 3.000 baris)
 
 **Selesai bila:** laporan kehadiran satu program dan laporan kas satu bulan bisa diunduh dalam tiga format.
 

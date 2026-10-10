@@ -354,6 +354,14 @@ Detail implementasi (tahap 6):
 
 PDF dibuat di server dengan `@react-pdf/renderer`. Setiap laporan memuat judul organisasi, periode, pembuat, waktu cetak, dan nomor halaman, dengan font tertanam. Batasi rentang data per laporan agar tidak melewati batas waktu fungsi serverless.
 
+Detail implementasi (tahap 7):
+- Satu model laporan generik (`src/lib/reports/model.ts`: kolom bertipe teks/angka/rupiah/persen, baris, total) dirender ke PDF, XLSX, dan CSV oleh `render.tsx`. Menambah laporan cukup membuat fungsi pembangun di `builders.ts` yang memeriksa `can()` dan menghasilkan model itu.
+- Unduhan lewat `/laporan/<jenis>?format=pdf|xlsx|csv`: `kehadiran-kelas`, `kehadiran-divisi`, `kehadiran-anggota` (anggota boleh mengunduh miliknya sendiri), `kas-bulanan`, `tunggakan`, `anggota`.
+- Font PDF: Inter (OFL) dari `@fontsource/inter`, dibaca dari disk dan disertakan ke fungsi Vercel lewat `outputFileTracingIncludes`.
+- CSV memakai BOM UTF-8 agar Excel membaca huruf dengan benar; XLSX menyimpan angka sebagai angka dengan format rupiah/persen.
+- Batas: rentang periode 366 hari dan 3.000 baris per laporan.
+- Rekap per divisi menghitung sesi kelas berstatus Selesai dalam periode untuk anggota yang terdaftar di kelas tersebut, dengan rumus yang sama seperti rekap kelas (`summarizeAttendance`).
+
 ## 14. Keamanan
 
 - Login email + password, minimal 10 karakter. Turnstile dan rate limit di login dan lupa password.
