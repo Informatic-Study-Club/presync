@@ -1,7 +1,7 @@
 // Memeriksa aturan wajib 2 di database sungguhan:
 // 1. Semua tabel di skema public mengaktifkan RLS.
 // 2. Tidak ada policy di skema public.
-// 3. API publik Supabase (anon key) tidak mengembalikan data dari tabel maupun view.
+// 3. API publik Supabase (publishable key) tidak mengembalikan data dari tabel maupun view.
 // Pemakaian: bun run db:check-rls  (keluar dengan kode 1 bila ada pelanggaran)
 
 import { connectScriptDb, requireEnv } from "./lib/db";
@@ -40,10 +40,11 @@ try {
     select viewname as tablename from pg_views where schemaname = 'public'
     order by tablename`;
   const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const publishableKey = requireEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
   for (const { tablename } of tables) {
     const res = await fetch(`${supabaseUrl}/rest/v1/${tablename}?select=*&limit=1`, {
-      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      // Kunci format baru bukan JWT: cukup header apikey, tanpa Authorization.
+      headers: { apikey: publishableKey },
     });
     const body: unknown = res.ok ? await res.json() : null;
     const leaked = Array.isArray(body) && body.length > 0;

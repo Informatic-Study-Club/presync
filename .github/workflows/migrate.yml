@@ -1,7 +1,7 @@
 # Migrasi database dijalankan manual dan terpisah dari deploy Vercel
 # (docs/ARSITEKTUR.md bagian 15). Jalankan staging dulu, uji, baru production.
 # Secret DATABASE_URL_DIRECT, NEXT_PUBLIC_SUPABASE_URL, dan
-# NEXT_PUBLIC_SUPABASE_ANON_KEY disimpan per GitHub Environment
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY disimpan per GitHub Environment
 # ("staging" dan "production"). Beri production reviewer wajib.
 name: Migrasi database
 
@@ -29,7 +29,7 @@ jobs:
     env:
       DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

@@ -9,7 +9,9 @@ const serverSchema = z.object({
   APP_URL: z.url(),
   DATABASE_URL: z.string().min(1),
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  // Kunci API format baru. Kunci lama (anon/service_role berbentuk JWT) sudah
+  // usang dan dihentikan Supabase; tolak sejak awal supaya salah isi cepat ketahuan.
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().startsWith("sb_publishable_"),
   TURNSTILE_SITE_KEY: z.string().min(1),
   TURNSTILE_SECRET_KEY: z.string().min(1),
   // Wajib di production; di development rate limit dilewati bila kosong.
@@ -38,7 +40,7 @@ export function serverEnv(): ServerEnv {
 // Secret yang hanya dibutuhkan fitur tertentu. Dibaca saat dipakai supaya
 // halaman lain tetap jalan walau secret itu belum diisi.
 const optionalSecrets = {
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
+  SUPABASE_SECRET_KEY: z.string().startsWith("sb_secret_"),
   CARD_SECRET: z.string().min(32),
   CRON_SECRET: z.string().min(16),
   RESEND_API_KEY: z.string().min(10),

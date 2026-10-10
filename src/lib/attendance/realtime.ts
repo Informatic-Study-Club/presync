@@ -16,7 +16,7 @@ export async function broadcastAttendanceChanged(sessionId: string): Promise<voi
     await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
       method: "POST",
       headers: {
-        apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        apikey: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

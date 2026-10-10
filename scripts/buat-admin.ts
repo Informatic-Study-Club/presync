@@ -97,7 +97,7 @@ async function createNewAdmin() {
 
   const supabase = createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    requireEnv("SUPABASE_SECRET_KEY"),
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
