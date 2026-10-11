@@ -58,6 +58,15 @@ export const termSchema = z
   })
   .refine((v) => v.endsOn > v.startsOn, { message: t.academic.errors.rangeInvalid, path: ["endsOn"] });
 
+export const termUpdateSchema = z
+  .object({
+    termId: z.uuid(),
+    name: z.string().trim().min(2).max(50),
+    startsOn: dateField,
+    endsOn: dateField,
+  })
+  .refine((v) => v.endsOn > v.startsOn, { message: t.academic.errors.rangeInvalid, path: ["endsOn"] });
+
 export const calendarEventSchema = z
   .object({
     title: z.string().trim().min(2).max(120),

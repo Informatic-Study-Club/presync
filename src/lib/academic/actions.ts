@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -27,6 +27,7 @@ import { serverEnv } from "@/lib/env";
 import { id as t } from "@/messages/id";
 import { hashFeedToken } from "./feed";
 import { holidaysFor } from "./queries";
+import { termChangeError, termDeleteError, yearChangeError, yearDeleteError } from "./calendar-edit";
 import { classDeleteBlocker, regularSessionTitle, upcomingSessionPatches } from "./class-edit";
 import { generateRegularSessions } from "./schedule";
 import { addMinutes, isThursdayInJakarta, jakartaToUtc } from "./time";
@@ -40,6 +41,7 @@ import {
   sessionStatusSchema,
   sessionUpdateSchema,
   termSchema,
+  termUpdateSchema,
 } from "./validation";
 
 export type ActionState = { error?: string; success?: string } | undefined;
@@ -126,6 +128,106 @@ export async function deleteCalendarEventAction(_p: ActionState, fd: FormData): 
   revalidatePath("/kalender/kelola");
   revalidatePath("/kalender");
   return { success: t.academic.manage.deleted };
+}
+
+const idField = z.uuid();
+
+export async function updateAcademicYearAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  if (!(await requireCalendarManager())) return { error: t.errors.forbidden };
+  const id = idField.safeParse(fd.get("yearId"));
+  const parsed = academicYearSchema.safeParse(Object.fromEntries(fd));
+  if (!id.success) return { error: t.auth.invalidInput };
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  const db = getDb();
+  const yearTerms = await db
+    .select({ startsOn: terms.startsOn, endsOn: terms.endsOn })
+    .from(terms)
+    .where(eq(terms.academicYearId, id.data));
+  const rejection = yearChangeError(parsed.data, yearTerms);
+  if (rejection) return { error: rejection };
+
+  const result = await guard(() =>
+    db.update(academicYears).set(parsed.data).where(eq(academicYears.id, id.data)).returning({ id: academicYears.id }),
+  );
+  if ("error" in result) return result;
+  if (result.length === 0) return { error: t.errors.notFound };
+  revalidatePath("/kalender/kelola");
+  return { success: t.academic.manage.saved };
+}
+
+export async function deleteAcademicYearAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  if (!(await requireCalendarManager())) return { error: t.errors.forbidden };
+  const id = idField.safeParse(fd.get("yearId"));
+  if (!id.success) return { error: t.auth.invalidInput };
+  const db = getDb();
+  const [used] = await db.select({ n: count() }).from(terms).where(eq(terms.academicYearId, id.data));
+  const rejection = yearDeleteError(used?.n ?? 0);
+  if (rejection) return { error: rejection };
+  await db.delete(academicYears).where(eq(academicYears.id, id.data));
+  revalidatePath("/kalender/kelola");
+  return { success: t.academic.manage.deleted };
+}
+
+export async function updateTermAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  if (!(await requireCalendarManager())) return { error: t.errors.forbidden };
+  const parsed = termUpdateSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const { termId, ...values } = parsed.data;
+
+  const db = getDb();
+  const [term] = await db
+    .select({ yearStartsOn: academicYears.startsOn, yearEndsOn: academicYears.endsOn })
+    .from(terms)
+    .innerJoin(academicYears, eq(terms.academicYearId, academicYears.id))
+    .where(eq(terms.id, termId))
+    .limit(1);
+  if (!term) return { error: t.errors.notFound };
+  // Tanggal sesi pertama dan terakhir kelas di semester ini, dalam WIB.
+  const jakartaDate = sql`(${sessions.startsAt} at time zone 'Asia/Jakarta')::date`;
+  const [span] = await db
+    .select({ first: sql<string | null>`min(${jakartaDate})::text`, last: sql<string | null>`max(${jakartaDate})::text` })
+    .from(sessions)
+    .innerJoin(classes, eq(sessions.classId, classes.id))
+    .where(eq(classes.termId, termId));
+  const sessionSpan = span?.first && span.last ? { first: span.first, last: span.last } : null;
+
+  const rejection = termChangeError(values, { startsOn: term.yearStartsOn, endsOn: term.yearEndsOn }, sessionSpan);
+  if (rejection) return { error: rejection };
+  await db.update(terms).set(values).where(eq(terms.id, termId));
+  revalidatePath("/kalender/kelola");
+  revalidatePath("/kelas");
+  return { success: t.academic.manage.saved };
+}
+
+export async function deleteTermAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  if (!(await requireCalendarManager())) return { error: t.errors.forbidden };
+  const id = idField.safeParse(fd.get("termId"));
+  if (!id.success) return { error: t.auth.invalidInput };
+  const db = getDb();
+  const [used] = await db.select({ n: count() }).from(classes).where(eq(classes.termId, id.data));
+  const rejection = termDeleteError(used?.n ?? 0);
+  if (rejection) return { error: rejection };
+  await db.delete(terms).where(eq(terms.id, id.data));
+  revalidatePath("/kalender/kelola");
+  return { success: t.academic.manage.deleted };
+}
+
+export async function updateCalendarEventAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  if (!(await requireCalendarManager())) return { error: t.errors.forbidden };
+  const id = idField.safeParse(fd.get("eventId"));
+  const parsed = calendarEventSchema.safeParse(Object.fromEntries(fd));
+  if (!id.success) return { error: t.auth.invalidInput };
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const updated = await getDb()
+    .update(calendarEvents)
+    .set(parsed.data)
+    .where(eq(calendarEvents.id, id.data))
+    .returning({ id: calendarEvents.id });
+  if (updated.length === 0) return { error: t.errors.notFound };
+  revalidatePath("/kalender/kelola");
+  revalidatePath("/kalender");
+  return { success: t.academic.manage.saved };
 }
 
 // ---------------------------------------------------------------- kelas

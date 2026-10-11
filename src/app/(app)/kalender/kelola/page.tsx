@@ -11,7 +11,12 @@ import {
   createAcademicYearAction,
   createCalendarEventAction,
   createTermAction,
+  deleteAcademicYearAction,
   deleteCalendarEventAction,
+  deleteTermAction,
+  updateAcademicYearAction,
+  updateCalendarEventAction,
+  updateTermAction,
 } from "@/lib/academic/actions";
 import { listAcademicYears, listCalendarEvents, listTerms } from "@/lib/academic/queries";
 import { can } from "@/lib/authz";
@@ -23,6 +28,20 @@ export const metadata: Metadata = { title: t.academic.manage.title };
 
 const f = t.academic.fields;
 const m = t.academic.manage;
+
+/** Rentang tanggal yang bisa diubah; dipakai tahun ajaran dan semester. */
+function RangeInputs({ prefix, startsOn, endsOn }: { prefix: string; startsOn: string; endsOn: string }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Field id={`${prefix}-start`} label={f.startsOn}>
+        <Input id={`${prefix}-start`} name="startsOn" type="date" defaultValue={startsOn} required />
+      </Field>
+      <Field id={`${prefix}-end`} label={f.endsOn}>
+        <Input id={`${prefix}-end`} name="endsOn" type="date" defaultValue={endsOn} required />
+      </Field>
+    </div>
+  );
+}
 
 function formatRange(startsOn: string, endsOn: string) {
   return startsOn === endsOn ? startsOn : `${startsOn} ${t.academic.rangeTo} ${endsOn}`;
@@ -51,11 +70,26 @@ export default async function ManageCalendarPage() {
             {years.length === 0 ? (
               <p className="text-muted-foreground">{m.noYears}</p>
             ) : (
-              <ul className="space-y-1">
+              <ul className="divide-y">
                 {years.map((y) => (
-                  <li key={y.id}>
+                  <li key={y.id} className="py-2">
                     <span className="font-medium">{y.name}</span>{" "}
                     <span className="text-muted-foreground">{formatRange(y.startsOn, y.endsOn)}</span>
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-xs text-muted-foreground">{m.edit}</summary>
+                      <div className="mt-2 space-y-3">
+                        <ActionForm action={updateAcademicYearAction} submitLabel={m.save} variant="outline">
+                          <input type="hidden" name="yearId" value={y.id} />
+                          <Field id={`year-name-${y.id}`} label={f.name}>
+                            <Input id={`year-name-${y.id}`} name="name" defaultValue={y.name} required maxLength={30} />
+                          </Field>
+                          <RangeInputs prefix={`year-${y.id}`} startsOn={y.startsOn} endsOn={y.endsOn} />
+                        </ActionForm>
+                        <ActionForm action={deleteAcademicYearAction} submitLabel={m.delete} variant="destructive">
+                          <input type="hidden" name="yearId" value={y.id} />
+                        </ActionForm>
+                      </div>
+                    </details>
                   </li>
                 ))}
               </ul>
@@ -84,13 +118,28 @@ export default async function ManageCalendarPage() {
             {terms.length === 0 ? (
               <p className="text-muted-foreground">{m.noTerms}</p>
             ) : (
-              <ul className="space-y-1">
+              <ul className="divide-y">
                 {terms.map((term) => (
-                  <li key={term.id}>
+                  <li key={term.id} className="py-2">
                     <span className="font-medium">
                       {term.yearName} {term.name}
                     </span>{" "}
                     <span className="text-muted-foreground">{formatRange(term.startsOn, term.endsOn)}</span>
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-xs text-muted-foreground">{m.edit}</summary>
+                      <div className="mt-2 space-y-3">
+                        <ActionForm action={updateTermAction} submitLabel={m.save} variant="outline">
+                          <input type="hidden" name="termId" value={term.id} />
+                          <Field id={`term-name-${term.id}`} label={f.name}>
+                            <Input id={`term-name-${term.id}`} name="name" defaultValue={term.name} required maxLength={50} />
+                          </Field>
+                          <RangeInputs prefix={`term-${term.id}`} startsOn={term.startsOn} endsOn={term.endsOn} />
+                        </ActionForm>
+                        <ActionForm action={deleteTermAction} submitLabel={m.delete} variant="destructive">
+                          <input type="hidden" name="termId" value={term.id} />
+                        </ActionForm>
+                      </div>
+                    </details>
                   </li>
                 ))}
               </ul>
@@ -185,6 +234,52 @@ export default async function ManageCalendarPage() {
                   <ActionForm action={deleteCalendarEventAction} submitLabel={m.delete} variant="outline" className="flex items-center gap-2">
                     <input type="hidden" name="eventId" value={e.id} />
                   </ActionForm>
+                  <details className="w-full">
+                    <summary className="cursor-pointer text-xs text-muted-foreground">{m.edit}</summary>
+                    <ActionForm action={updateCalendarEventAction} submitLabel={m.save} variant="outline" className="mt-2 space-y-3">
+                      <input type="hidden" name="eventId" value={e.id} />
+                      {e.kind === "holiday" ? <p className="text-xs text-muted-foreground">{m.eventEditHint}</p> : null}
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <Field id={`event-title-${e.id}`} label={f.title}>
+                          <Input id={`event-title-${e.id}`} name="title" defaultValue={e.title} required maxLength={120} />
+                        </Field>
+                        <Field id={`event-kind-${e.id}`} label={f.kind}>
+                          <NativeSelect id={`event-kind-${e.id}`} name="kind" defaultValue={e.kind} className="w-full">
+                            {(["holiday", "exam", "activity", "deadline"] as const).map((k) => (
+                              <option key={k} value={k}>
+                                {t.academic.eventKind[k]}
+                              </option>
+                            ))}
+                          </NativeSelect>
+                        </Field>
+                        <Field id={`event-start-${e.id}`} label={f.startsOn}>
+                          <Input id={`event-start-${e.id}`} name="startsOn" type="date" defaultValue={e.startsOn} required />
+                        </Field>
+                        <Field id={`event-end-${e.id}`} label={f.endsOn}>
+                          <Input id={`event-end-${e.id}`} name="endsOn" type="date" defaultValue={e.endsOn} required />
+                        </Field>
+                        <Field id={`event-division-${e.id}`} label={f.division}>
+                          <NativeSelect id={`event-division-${e.id}`} name="divisionId" defaultValue={e.divisionId ?? ""} className="w-full">
+                            <option value="">{t.academic.allDivisions}</option>
+                            {divisions.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name}
+                              </option>
+                            ))}
+                          </NativeSelect>
+                        </Field>
+                      </div>
+                      <Field id={`event-description-${e.id}`} label={f.description}>
+                        <Textarea
+                          id={`event-description-${e.id}`}
+                          name="description"
+                          rows={2}
+                          maxLength={1000}
+                          defaultValue={e.description ?? ""}
+                        />
+                      </Field>
+                    </ActionForm>
+                  </details>
                 </li>
               ))}
             </ul>

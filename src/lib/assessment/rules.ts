@@ -47,6 +47,15 @@ export function totalWeight(components: readonly Pick<ComponentDef, "weight">[])
   return components.reduce((sum, c) => sum + c.weight, 0);
 }
 
+/** Total bobot bila satu komponen diganti bobotnya (untuk ubah komponen). */
+export function totalWeightWith(
+  components: readonly { id: string; weight: number }[],
+  componentId: string,
+  weight: number,
+): number {
+  return components.reduce((sum, c) => sum + (c.id === componentId ? weight : c.weight), 0);
+}
+
 /** Templat penilaian Web Development dari Google Sheets. */
 export const WEB_DEV_TEMPLATE: { components: ComponentDef[]; rule: CertificateRule } = {
   components: [

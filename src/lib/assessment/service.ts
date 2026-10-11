@@ -15,7 +15,15 @@ import { classRecap } from "@/lib/attendance/service";
 import { can, type SessionUser } from "@/lib/authz";
 import { id as t } from "@/messages/id";
 import { type Evaluation, evaluateCertificate, finalStatus, type ScoreEntry } from "./evaluate";
-import { type CertificateRule, type ComponentDef, componentKey, parseRule, totalWeight, WEB_DEV_TEMPLATE } from "./rules";
+import {
+  type CertificateRule,
+  type ComponentDef,
+  componentKey,
+  parseRule,
+  totalWeight,
+  totalWeightWith,
+  WEB_DEV_TEMPLATE,
+} from "./rules";
 
 export type Result = { ok: boolean; message: string };
 
@@ -27,6 +35,7 @@ async function loadClass(classId: string) {
       divisionId: classes.divisionId,
       divisionName: divisions.name,
       termName: terms.name,
+      archivedAt: classes.archivedAt,
     })
     .from(classes)
     .innerJoin(divisions, eq(classes.divisionId, divisions.id))
@@ -130,6 +139,8 @@ async function requireManage(user: SessionUser, classId: string) {
   const cls = await loadClass(classId);
   if (!cls) return { cls: null, error: t.errors.notFound } as const;
   if (!can(user, "assessment.manage", { divisionId: cls.divisionId })) return { cls: null, error: t.errors.forbidden } as const;
+  // Kelas arsip hanya bisa dilihat, termasuk nilai dan aturan sertifikatnya.
+  if (cls.archivedAt) return { cls: null, error: t.academic.classes.archivedLocked } as const;
   return { cls, error: null } as const;
 }
 
@@ -151,6 +162,41 @@ export async function addComponent(
   if (total > 100) return { ok: false, message: t.assessment.errors.weightTooHigh(total) };
   await db.insert(assessmentComponents).values({ classId: cls.id, key, name: input.name, kind: input.kind, weight: input.weight, position: existing.length });
   return { ok: true, message: t.assessment.saved };
+}
+
+/** Ubah nama dan bobot. Kunci dan jenis tetap (dipakai aturan sertifikat dan nilai). */
+export async function updateComponent(
+  user: SessionUser,
+  componentId: string,
+  input: { name: string; weight: number },
+): Promise<Result> {
+  const db = getDb();
+  const [component] = await db.select().from(assessmentComponents).where(eq(assessmentComponents.id, componentId)).limit(1);
+  if (!component) return { ok: false, message: t.errors.notFound };
+  const { cls, error } = await requireManage(user, component.classId);
+  if (!cls) return { ok: false, message: error };
+  if (component.name === input.name && component.weight === input.weight) {
+    return { ok: false, message: t.profile.edit.noChanges };
+  }
+  return db.transaction(async (tx) => {
+    const siblings = await tx
+      .select({ id: assessmentComponents.id, weight: assessmentComponents.weight })
+      .from(assessmentComponents)
+      .where(eq(assessmentComponents.classId, cls.id))
+      .for("update");
+    const total = totalWeightWith(siblings, component.id, input.weight);
+    if (total > 100) return { ok: false, message: t.assessment.errors.weightTooHigh(total) };
+    await tx.update(assessmentComponents).set(input).where(eq(assessmentComponents.id, component.id));
+    // Bobot memengaruhi kelulusan sertifikat, jadi perubahan dicatat.
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: "assessment.component_update",
+      entityType: "assessment_component",
+      entityId: component.id,
+      data: { from: { name: component.name, weight: component.weight }, to: input },
+    });
+    return { ok: true, message: t.assessment.saved };
+  });
 }
 
 export async function deleteComponent(user: SessionUser, componentId: string): Promise<Result> {

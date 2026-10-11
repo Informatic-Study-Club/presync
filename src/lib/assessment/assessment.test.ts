@@ -8,6 +8,7 @@ import {
   parseRule,
   parseScoreInput,
   totalWeight,
+  totalWeightWith,
   WEB_DEV_TEMPLATE,
 } from "./rules";
 
@@ -149,5 +150,22 @@ describe("utilitas", () => {
   test("aturan rusak di database dianggap kosong", () => {
     expect(parseRule({ maxIzin: "tiga" })).toEqual(EMPTY_RULE);
     expect(parseRule({ maxIzin: 3 })).toEqual({ ...EMPTY_RULE, maxIzin: 3 });
+  });
+});
+
+describe("totalWeightWith", () => {
+  const comps = [
+    { id: "a", weight: 30 },
+    { id: "b", weight: 50 },
+    { id: "c", weight: 20 },
+  ];
+
+  test("mengganti bobot satu komponen", () => {
+    expect(totalWeightWith(comps, "b", 40)).toBe(90);
+    expect(totalWeightWith(comps, "b", 60)).toBe(110);
+  });
+
+  test("id tak dikenal tidak mengubah total", () => {
+    expect(totalWeightWith(comps, "x", 99)).toBe(100);
   });
 });

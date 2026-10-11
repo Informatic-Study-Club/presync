@@ -36,6 +36,23 @@ export async function addComponentAction(_p: ActionState, fd: FormData): Promise
   return toState(result);
 }
 
+export async function updateComponentAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user } = await requireSession();
+  const parsed = z
+    .object({
+      classId: z.uuid(),
+      componentId: z.uuid(),
+      name: z.string().trim().min(2).max(60),
+      weight: z.coerce.number().int().min(0).max(100),
+    })
+    .safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { error: t.auth.invalidInput };
+  const { classId, componentId, ...input } = parsed.data;
+  const result = await service.updateComponent(user, componentId, input);
+  if (result.ok) revalidatePath(path(classId));
+  return toState(result);
+}
+
 export async function deleteComponentAction(_p: ActionState, fd: FormData): Promise<ActionState> {
   const { user } = await requireSession();
   const parsed = z.object({ classId: z.uuid(), componentId: z.uuid() }).safeParse(Object.fromEntries(fd));

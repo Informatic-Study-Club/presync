@@ -15,6 +15,7 @@ import {
   addComponentAction,
   applyTemplateAction,
   deleteComponentAction,
+  updateComponentAction,
   overrideAction,
   saveRuleAction,
   saveScoresAction,
@@ -93,6 +94,22 @@ export default async function AssessmentPage({ params }: PageProps<"/kelas/[id]/
                         <input type="hidden" name="classId" value={cls.id} />
                         <input type="hidden" name="componentId" value={c.id} />
                       </ActionForm>
+                      <details className="w-full">
+                        <summary className="cursor-pointer text-xs text-muted-foreground">{a.editComponent}</summary>
+                        <ActionForm action={updateComponentAction} submitLabel={a.editComponent} variant="outline" className="mt-2 space-y-2">
+                          <input type="hidden" name="classId" value={cls.id} />
+                          <input type="hidden" name="componentId" value={c.id} />
+                          <p className="text-xs text-muted-foreground">{a.editComponentHint}</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <Field id={`comp-name-${c.id}`} label={a.componentName}>
+                              <Input id={`comp-name-${c.id}`} name="name" defaultValue={c.name} required minLength={2} maxLength={60} />
+                            </Field>
+                            <Field id={`comp-weight-${c.id}`} label={a.componentWeight}>
+                              <Input id={`comp-weight-${c.id}`} name="weight" type="number" min={0} max={100} defaultValue={c.weight} required />
+                            </Field>
+                          </div>
+                        </ActionForm>
+                      </details>
                     </li>
                   ))}
                 </ul>

@@ -170,6 +170,12 @@ Migrasi riwayat dari Google Sheets:
 - Status sesi: `scheduled`, `done`, `off` (libur atau dibatalkan). Sesi `off` tidak masuk penyebut persentase kehadiran.
 - Kelas rutin dan tambahan mensyaratkan anggota terdaftar di kelas. Kegiatan terbuka sesuai cakupan.
 - Kalender akademik: tahun ajaran, semester, dan event (libur, ujian, kegiatan, deadline). Feed `.ics` untuk Google Calendar atau Apple Calendar.
+- Ubah dan hapus (aturan murni di `class-edit.ts` dan `calendar-edit.ts`, dites):
+  - **Tahun ajaran dan semester**: rentang baru harus tetap mencakup semester dan sesi kelasnya. Keduanya hanya bisa dihapus selama kosong.
+  - **Kelas**: bisa diubah. Perubahan jam, mode, dan tempat hanya diterapkan ke sesi terjadwal yang belum dimulai, dan hanya bila diminta.
+  - **Arsip kelas**: kelas yang diarsipkan hanya bisa dilihat, termasuk penilaiannya.
+  - **Hapus kelas**: hanya bila belum ada presensi, nilai, atau status sertifikat, karena presensi ikut terhapus bersama sesinya.
+  - **Event libur**: mengubahnya tidak menjadwal ulang sesi yang sudah ada.
 
 Contoh SQL kustom (ditulis sekali di migrasi, dengan komentar):
 
