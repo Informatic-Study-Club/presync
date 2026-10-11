@@ -85,15 +85,38 @@ async function prepare(file: ImportFileInput): Promise<Prepared> {
   return { ok: true, rows: parsed.rows, hash: fileHash(file.data) };
 }
 
-export async function previewImport(
-  user: SessionUser,
-  file: ImportFileInput,
-): Promise<{ ok: true; plan: ImportPlan; hash: string } | { ok: false; error: string }> {
+/** Hash baris dari formulir web, supaya yang disimpan sama dengan yang diperiksa. */
+export function rowsHash(rows: readonly RawImportRow[]): string {
+  return createHash("sha256").update(JSON.stringify(rows)).digest("hex");
+}
+
+type PreviewResult = { ok: true; plan: ImportPlan; hash: string } | { ok: false; error: string };
+type CommitResult = { ok: true; imported: number; plan: ImportPlan } | { ok: false; error: string };
+
+async function previewPrepared(user: SessionUser, prepared: Prepared): Promise<PreviewResult> {
   assertCan(user, "member.import");
-  const prepared = await prepare(file);
   if (!prepared.ok) return prepared;
   const plan = planImport(prepared.rows, await loadImportContext(getDb()));
   return { ok: true, plan, hash: prepared.hash };
+}
+
+export async function previewImport(user: SessionUser, file: ImportFileInput): Promise<PreviewResult> {
+  assertCan(user, "member.import");
+  return previewPrepared(user, await prepare(file));
+}
+
+/** Tambah anggota lewat formulir web: jalur yang sama dengan impor file. */
+export async function previewMemberRows(user: SessionUser, rows: RawImportRow[]): Promise<PreviewResult> {
+  return previewPrepared(user, { ok: true, rows, hash: rowsHash(rows) });
+}
+
+export async function commitMemberRows(
+  user: SessionUser,
+  rows: RawImportRow[],
+  expectedHash: string,
+): Promise<CommitResult> {
+  assertCan(user, "member.import");
+  return commitPrepared(user, t.members.add.sourceName, { ok: true, rows, hash: rowsHash(rows) }, expectedHash);
 }
 
 class ImportAbort extends Error {}
@@ -102,10 +125,23 @@ export async function commitImport(
   user: SessionUser,
   file: ImportFileInput,
   expectedHash: string,
-): Promise<{ ok: true; imported: number; plan: ImportPlan } | { ok: false; error: string }> {
+): Promise<CommitResult> {
+  assertCan(user, "member.import");
+  return commitPrepared(user, file.name, await prepare(file), expectedHash);
+}
+
+/**
+ * Simpan anggota dari file impor atau formulir web. sourceName dicatat di
+ * riwayat impor dan audit log.
+ */
+async function commitPrepared(
+  user: SessionUser,
+  sourceName: string,
+  prepared: Prepared,
+  expectedHash: string,
+): Promise<CommitResult> {
   assertCan(user, "member.import");
   const db = getDb();
-  const prepared = await prepare(file);
   if (!prepared.ok) return prepared;
   if (prepared.hash !== expectedHash) {
     return { ok: false, error: t.import.fileErrors.hashMismatch };
@@ -118,7 +154,7 @@ export async function commitImport(
   const recordFailure = async (error: string) => {
     await db.insert(importBatches).values({
       createdBy: user.id,
-      fileName: file.name,
+      fileName: sourceName,
       fileHash: prepared.hash,
       totalRows: prepared.rows.length,
       status: "failed",
@@ -205,7 +241,7 @@ export async function commitImport(
         .insert(importBatches)
         .values({
           createdBy: user.id,
-          fileName: file.name,
+          fileName: sourceName,
           fileHash: prepared.hash,
           totalRows: prepared.rows.length,
           importedRows: inserted.length,
@@ -230,7 +266,7 @@ export async function commitImport(
         action: "member.import",
         entityType: "import_batch",
         entityId: importId,
-        note: file.name,
+        note: sourceName,
         data: {
           imported: inserted.length,
           skipped: prepared.rows.length - inserted.length,

@@ -2,19 +2,12 @@
 
 import { startTransition, useActionState, useState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
-import { Badge } from "@/components/ui/badge";
+import { ImportPreviewTable } from "@/components/members/import-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { importAction } from "@/lib/members/import/actions";
 import { id as t } from "@/messages/id";
-
-const STATUS = {
-  ok: { label: t.import.statusOk, variant: "secondary" },
-  warning: { label: t.import.statusWarning, variant: "outline" },
-  error: { label: t.import.statusError, variant: "destructive" },
-} as const;
 
 export function ImportForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -62,44 +55,7 @@ export function ImportForm() {
             </Button>
             <p className="text-xs text-muted-foreground">{t.import.commitHint}</p>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.import.colRow}</TableHead>
-                <TableHead>{t.import.colStatus}</TableHead>
-                <TableHead>{t.members.colCode}</TableHead>
-                <TableHead>{t.members.colName}</TableHead>
-                <TableHead>{t.members.colEmail}</TableHead>
-                <TableHead>{t.members.colPhone}</TableHead>
-                <TableHead>{t.members.colDivision}</TableHead>
-                <TableHead>{t.import.colNotes}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {state.rows.map((r) => (
-                <TableRow key={r.rowNumber} className="align-top">
-                  <TableCell>{r.rowNumber}</TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS[r.status].variant}>{STATUS[r.status].label}</Badge>
-                  </TableCell>
-                  <TableCell className="font-mono">{r.display.kode_id}</TableCell>
-                  <TableCell>{r.display.nama}</TableCell>
-                  <TableCell>{r.display.email}</TableCell>
-                  <TableCell className="font-mono">{r.display.no_hp}</TableCell>
-                  <TableCell>
-                    {r.display.divisi} · {r.display.batch}
-                  </TableCell>
-                  <TableCell className="min-w-64 whitespace-normal text-xs">
-                    <ul className="list-disc space-y-1 pl-4">
-                      {r.notes.map((note) => (
-                        <li key={note}>{note}</li>
-                      ))}
-                    </ul>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ImportPreviewTable rows={state.rows} />
         </div>
       ) : null}
     </div>

@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { can } from "@/lib/authz";
 import { requireSession } from "@/lib/auth/session";
 import { id as t } from "@/messages/id";
 import { MAX_IMPORT_BYTES } from "./parse";
-import { commitImport, previewImport } from "./service";
+import type { ImportPlan, RawImportRow } from "./plan";
+import { commitImport, commitMemberRows, previewImport, previewMemberRows } from "./service";
 
 // ---------------------------------------------------------------- impor
 
@@ -48,10 +50,11 @@ export async function importAction(_prev: ImportState, formData: FormData): Prom
 
   const result = await previewImport(user, input);
   if (!result.ok) return { error: result.error };
-  const { plan } = result;
+  return { fileName: file.name, fileHash: result.hash, ...previewState(result.plan) };
+}
+
+function previewState(plan: ImportPlan): Pick<NonNullable<ImportState>, "counts" | "rows"> {
   return {
-    fileName: file.name,
-    fileHash: result.hash,
     counts: { ok: plan.okCount, warning: plan.warningCount, error: plan.errorCount },
     rows: plan.rows.map((r) => ({
       rowNumber: r.rowNumber,
@@ -60,4 +63,50 @@ export async function importAction(_prev: ImportState, formData: FormData): Prom
       notes: [...r.errors, ...r.warnings, ...r.infos],
     })),
   };
+}
+
+// ---------------------------------------------------------------- tambah lewat formulir
+
+/** Batas baris sekali simpan dari formulir web (impor file untuk jumlah besar). */
+const MAX_FORM_ROWS = 50;
+
+const formRowSchema = z.object({
+  nama: z.string().max(200),
+  email: z.string().max(254),
+  no_hp: z.string().max(30),
+  divisi: z.string().max(100),
+  batch: z.string().max(10),
+  kode_id: z.string().max(20),
+});
+const formRowsSchema = z.array(formRowSchema).min(1).max(MAX_FORM_ROWS);
+
+export async function addMembersAction(_prev: ImportState, formData: FormData): Promise<ImportState> {
+  const { user } = await requireSession();
+  if (!can(user, "member.import")) return { error: t.errors.forbidden };
+
+  let json: unknown;
+  try {
+    json = JSON.parse(String(formData.get("rows") ?? "[]"));
+  } catch {
+    return { error: t.auth.invalidInput };
+  }
+  const parsed = formRowsSchema.safeParse(json);
+  if (!parsed.success) return { error: t.members.add.tooManyRows(MAX_FORM_ROWS) };
+  // Baris kosong seluruhnya dilewati; nomor baris mengikuti urutan di formulir.
+  const rows: RawImportRow[] = parsed.data
+    .map((values, i) => ({ rowNumber: i + 1, values }))
+    .filter((r) => Object.values(r.values).some((v) => v.trim() !== ""));
+  if (rows.length === 0) return { error: t.members.add.empty };
+
+  if (formData.get("intent") === "commit") {
+    const result = await commitMemberRows(user, rows, String(formData.get("hash") ?? ""));
+    if (!result.ok) return { error: result.error };
+    revalidatePath("/anggota");
+    const codes = result.plan.rows.flatMap((r) => (r.member ? [r.member.memberCode] : []));
+    return { success: t.members.add.success(result.imported, codes.join(", ")) };
+  }
+
+  const result = await previewMemberRows(user, rows);
+  if (!result.ok) return { error: result.error };
+  return { fileHash: result.hash, ...previewState(result.plan) };
 }

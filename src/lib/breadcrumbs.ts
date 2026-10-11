@@ -31,6 +31,7 @@ const ROUTES: Record<string, RouteDef> = {
   "/kas/tunggakan": { label: b.arrears, parent: "/kas/kelola" },
   "/anggota": { label: t.nav.members, parent: "/" },
   "/anggota/impor": { label: t.nav.import, parent: "/anggota" },
+  "/anggota/baru": { label: t.nav.addMember, parent: "/anggota" },
   "/anggota/:id": { label: b.memberProfile, parent: "/anggota" },
   "/laporan": { label: t.nav.reports, parent: "/" },
   "/notifikasi": { label: t.nav.notifications, parent: "/" },

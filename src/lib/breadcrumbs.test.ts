@@ -21,6 +21,7 @@ describe("buildBreadcrumbs", () => {
 
   test("segmen statis menang atas :id", () => {
     expect(labels("/anggota/impor")).toEqual(["Beranda", "Anggota", "Impor"]);
+    expect(labels("/anggota/baru")).toEqual(["Beranda", "Anggota", "Tambah Anggota"]);
     expect(labels("/kelas/baru")).toEqual(["Beranda", "Kelas", "Kelas baru"]);
     expect(labels("/presensi/arsip")).toEqual(["Beranda", "Arsip Presensi"]);
   });

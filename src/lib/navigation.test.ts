@@ -29,6 +29,7 @@ describe("buildNavigation (RBAC)", () => {
     const h = hrefs(user(["bendahara"]));
     expect(h).toContain("/kas/kelola");
     expect(h).not.toContain("/anggota/impor");
+    expect(h).not.toContain("/anggota/baru");
     expect(h).not.toContain("/admin/permintaan-data");
   });
 
@@ -45,7 +46,7 @@ describe("buildNavigation (RBAC)", () => {
 
   test("admin melihat semua menu", () => {
     const h = hrefs(user(["admin"]));
-    for (const href of ["/kas/kelola", "/anggota", "/anggota/impor", "/presensi/arsip", "/admin/permintaan-data"]) {
+    for (const href of ["/kas/kelola", "/anggota", "/anggota/baru", "/anggota/impor", "/presensi/arsip", "/admin/permintaan-data"]) {
       expect(h).toContain(href);
     }
   });
@@ -61,6 +62,7 @@ describe("activeHref", () => {
     ["/kas/verifikasi", "/kas/kelola"],
     ["/anggota/123", "/anggota"],
     ["/anggota/impor", "/anggota/impor"],
+    ["/anggota/baru", "/anggota/baru"],
     ["/kelas/abc/penilaian", "/kelas"],
     ["/kegiatan/baru", "/kelas"],
     ["/presensi/sesi-1/pindai", "/kelas"],

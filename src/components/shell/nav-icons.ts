@@ -12,6 +12,7 @@ import {
   ReceiptText,
   ScanLine,
   ShieldCheck,
+  UserPlus,
   Users,
   Wallet,
 } from "lucide-react";
@@ -27,6 +28,7 @@ export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
   bills: ReceiptText,
   finance: Wallet,
   members: Users,
+  addMember: UserPlus,
   import: FileUp,
   archive: Archive,
   reports: ChartColumn,

@@ -14,6 +14,7 @@ export type NavIcon =
   | "bills"
   | "finance"
   | "members"
+  | "addMember"
   | "import"
   | "archive"
   | "reports"
@@ -74,6 +75,7 @@ const NAV: readonly NavGroupDef[] = [
     label: t.nav.groups.manage,
     items: [
       { href: "/anggota", label: t.nav.members, icon: "members", requires: { kind: "anyDivision", action: "member.list" } },
+      { href: "/anggota/baru", label: t.nav.addMember, icon: "addMember", requires: { kind: "action", action: "member.import" } },
       { href: "/anggota/impor", label: t.nav.import, icon: "import", requires: { kind: "action", action: "member.import" } },
       { href: "/presensi/arsip", label: t.nav.archive, icon: "archive", requires: { kind: "action", action: "member.import" } },
       { href: "/laporan", label: t.nav.reports, icon: "reports", requires: always },

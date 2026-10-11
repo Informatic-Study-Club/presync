@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { can } from "@/lib/authz";
 import { requireSession } from "@/lib/auth/session";
 import { listBatches, listMembers, visibleDivisions } from "@/lib/members/queries";
 import { id as t } from "@/messages/id";
@@ -45,14 +47,22 @@ export default async function MembersPage({ searchParams }: PageProps<"/anggota"
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1>{t.members.title}</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          render={<a href={`/anggota/kartu?${printParams.toString()}`} />}
-          nativeButton={false}
-        >
-          {t.members.printCards}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<a href={`/anggota/kartu?${printParams.toString()}`} />}
+            nativeButton={false}
+          >
+            {t.members.printCards}
+          </Button>
+          {can(user, "member.import") ? (
+            <Button size="sm" render={<Link href="/anggota/baru" />} nativeButton={false}>
+              <UserPlus data-icon="inline-start" />
+              {t.members.add.action}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <form className="flex flex-wrap gap-2" method="get">
