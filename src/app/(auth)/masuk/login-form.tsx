@@ -49,7 +49,7 @@ export function LoginForm({
           required
         />
       </div>
-      <Turnstile siteKey={siteKey} resetSignal={state} />
+      <Turnstile siteKey={siteKey} action="login" resetSignal={state} />
       <FormMessage error={state?.error} />
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? t.common.loading : t.auth.login}

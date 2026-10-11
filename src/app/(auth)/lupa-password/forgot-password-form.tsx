@@ -19,7 +19,7 @@ export function ForgotPasswordForm({ siteKey }: { siteKey: string }) {
         <Label htmlFor="email">{t.auth.email}</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
-      <Turnstile siteKey={siteKey} resetSignal={state} />
+      <Turnstile siteKey={siteKey} action="lupa-password" resetSignal={state} />
       <FormMessage error={state?.error} success={state?.success} />
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? t.common.loading : t.auth.forgotSubmit}

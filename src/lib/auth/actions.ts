@@ -47,7 +47,7 @@ export async function loginAction(
   if (!(await checkRateLimit("login", [`ip:${ip}`, `email:${email}`]))) {
     return { error: t.auth.rateLimited };
   }
-  if (!(await verifyTurnstile(turnstileToken(formData), ip))) {
+  if (!(await verifyTurnstile(turnstileToken(formData), ip, "login"))) {
     return { error: t.auth.captchaFailed };
   }
 
@@ -83,7 +83,7 @@ export async function forgotPasswordAction(
   if (!(await checkRateLimit("forgot", [`ip:${ip}`, `email:${email}`]))) {
     return { error: t.auth.rateLimited };
   }
-  if (!(await verifyTurnstile(turnstileToken(formData), ip))) {
+  if (!(await verifyTurnstile(turnstileToken(formData), ip, "lupa-password"))) {
     return { error: t.auth.captchaFailed };
   }
 

@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
+import type { TurnstileAction } from "@/lib/security/turnstile-check";
 
 type TurnstileApi = {
   render: (el: HTMLElement, options: Record<string, unknown>) => string;
@@ -21,9 +22,12 @@ declare global {
 // karena token hanya berlaku sekali.
 export function Turnstile({
   siteKey,
+  action,
   resetSignal,
 }: {
   siteKey: string;
+  /** Diperiksa server: token formulir ini tidak berlaku untuk formulir lain. */
+  action: TurnstileAction;
   resetSignal?: unknown;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,7 +39,8 @@ export function Turnstile({
     if (!ready || !el || !window.turnstile) return;
     const widgetId = window.turnstile.render(el, {
       sitekey: siteKey,
-      theme: "dark",
+      action,
+      theme: "light",
       language: "id",
     });
     widgetIdRef.current = widgetId;
@@ -43,7 +48,7 @@ export function Turnstile({
       window.turnstile?.remove(widgetId);
       widgetIdRef.current = undefined;
     };
-  }, [ready, siteKey]);
+  }, [ready, siteKey, action]);
 
   useEffect(() => {
     if (resetSignal !== undefined && widgetIdRef.current) {
