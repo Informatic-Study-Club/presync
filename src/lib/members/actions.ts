@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getDb } from "@/db";
@@ -8,7 +8,9 @@ import { divisionCoordinators, divisions, memberRoles, members } from "@/db/sche
 import { writeAudit } from "@/lib/audit";
 import { can } from "@/lib/authz";
 import { requireSession } from "@/lib/auth/session";
+import { diffProfile, profileChangeError, profileUpdateSchema } from "@/lib/members/profile";
 import { enqueueNotifications } from "@/lib/notifications/outbox";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { id as t } from "@/messages/id";
 
 export type ActionState = { error?: string; success?: string } | undefined;
@@ -189,3 +191,98 @@ export async function resendInviteAction(_prev: ActionState, formData: FormData)
   return { success: t.profile.inviteQueued };
 }
 
+
+// ---------------------------------------------------------------- ubah profil
+
+/** Nama constraint unik Postgres dari galat, menembus pembungkus Drizzle. */
+function uniqueConstraint(err: unknown): string | null {
+  for (const c of [err, (err as { cause?: unknown } | null)?.cause]) {
+    if (c && typeof c === "object" && "code" in c && String(c.code) === "23505") {
+      return "constraint_name" in c ? String(c.constraint_name) : "";
+    }
+  }
+  return null;
+}
+
+export async function updateProfileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { user } = await requireSession();
+  const p = t.profile.edit;
+  const parsed = profileUpdateSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? t.auth.invalidInput };
+  const input = parsed.data;
+  const db = getDb();
+
+  const [current] = await db
+    .select({
+      id: members.id,
+      fullName: members.fullName,
+      email: members.email,
+      phone: members.phone,
+      divisionId: members.divisionId,
+      status: members.status,
+    })
+    .from(members)
+    .where(eq(members.id, input.memberId))
+    .limit(1);
+  if (!current) return { error: t.errors.notFound };
+  if (!can(user, "member.update", { memberId: current.id, divisionId: current.divisionId })) {
+    return { error: t.errors.forbidden };
+  }
+
+  const next = {
+    fullName: input.fullName,
+    email: input.email,
+    phone: input.phone,
+    divisionId: input.divisionId,
+    status: input.status,
+  };
+  const changes = diffProfile(current, next);
+  const rejection = profileChangeError(user.id, current.id, changes, input.note);
+  if (rejection) return { error: rejection };
+
+  const [division] = await db.select({ id: divisions.id }).from(divisions).where(eq(divisions.id, next.divisionId)).limit(1);
+  if (!division) return { error: p.divisionRequired };
+
+  // Pemeriksaan awal supaya pesan jelas; constraint unik tetap penjaga terakhir.
+  const [taken] = await db
+    .select({ email: members.email, phone: members.phone })
+    .from(members)
+    .where(and(ne(members.id, current.id), or(eq(members.email, next.email), eq(members.phone, next.phone))))
+    .limit(1);
+  if (taken) return { error: taken.email === next.email ? p.emailTaken : p.phoneTaken };
+
+  // Email login di Supabase Auth diubah lebih dulu (API terpisah dari
+  // transaksi database), lalu dikembalikan bila penyimpanan data gagal.
+  const emailChanged = next.email !== current.email;
+  const admin = emailChanged ? createSupabaseAdminClient() : null;
+  if (admin) {
+    const { error } = await admin.auth.admin.updateUserById(current.id, { email: next.email, email_confirm: true });
+    if (error) return { error: error.code === "email_exists" ? p.emailTaken : p.authFailed(error.message) };
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(members)
+        .set({ ...next, updatedAt: new Date() })
+        .where(eq(members.id, current.id));
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "member.update",
+        entityType: "member",
+        entityId: current.id,
+        note: input.note || undefined,
+        data: { changes },
+      });
+    });
+  } catch (err) {
+    if (admin) await admin.auth.admin.updateUserById(current.id, { email: current.email, email_confirm: true });
+    const constraint = uniqueConstraint(err);
+    if (constraint !== null) return { error: constraint.includes("phone") ? p.phoneTaken : p.emailTaken };
+    throw err;
+  }
+
+  revalidatePath(`/anggota/${current.id}`);
+  revalidatePath("/anggota");
+  return { success: p.saved };
+}

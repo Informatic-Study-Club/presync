@@ -5,7 +5,9 @@ import { ActionForm } from "@/components/action-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { can } from "@/lib/authz";
 import { requireSession } from "@/lib/auth/session";
@@ -14,7 +16,9 @@ import {
   resendInviteAction,
   saveRolesAction,
   setCardStatusAction,
+  updateProfileAction,
 } from "@/lib/members/actions";
+import { MEMBER_STATUSES } from "@/lib/members/profile";
 import { getMemberProfile, listDivisions } from "@/lib/members/queries";
 import { id as t } from "@/messages/id";
 
@@ -44,7 +48,9 @@ export default async function MemberProfilePage({ params }: PageProps<"/anggota/
   const canBlock = can(user, "card.block", resource);
   const canRoles = can(user, "role.manage");
   const canInvite = can(user, "member.invite", resource);
-  const divisions = canRoles ? await listDivisions() : [];
+  const canEdit = can(user, "member.update", resource);
+  const divisions = canRoles || canEdit ? await listDivisions() : [];
+  const e = t.profile.edit;
 
   const details: [string, string][] = [
     [t.dashboard.memberCode, profile.memberCode],
@@ -77,6 +83,75 @@ export default async function MemberProfilePage({ params }: PageProps<"/anggota/
           </dl>
         </CardContent>
       </Card>
+
+      {canEdit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{e.title}</CardTitle>
+            <CardDescription>{e.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ActionForm action={updateProfileAction} submitLabel={e.save} className="space-y-4 text-sm">
+              <input type="hidden" name="memberId" value={profile.id} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="edit-name">{e.fullName}</Label>
+                  <Input id="edit-name" name="fullName" defaultValue={profile.fullName} required maxLength={200} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-email">{e.email}</Label>
+                  <Input id="edit-email" name="email" type="email" defaultValue={profile.email} required maxLength={254} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-phone">{e.phone}</Label>
+                  <Input id="edit-phone" name="phone" type="tel" inputMode="tel" defaultValue={profile.phone ?? ""} required maxLength={30} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-division">{e.division}</Label>
+                  <NativeSelect id="edit-division" name="divisionId" defaultValue={profile.divisionId} className="w-full">
+                    {divisions.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-batch">{e.batch}</Label>
+                  <Input id="edit-batch" value={profile.batch} disabled readOnly className="font-mono" aria-describedby="edit-batch-hint" />
+                  <p id="edit-batch-hint" className="text-xs text-muted-foreground">{e.batchLocked}</p>
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="edit-status">{e.status}</Label>
+                  <NativeSelect
+                    id="edit-status"
+                    name="status"
+                    defaultValue={profile.status}
+                    className="w-full sm:w-64"
+                    disabled={profile.id === user.id}
+                    aria-describedby="edit-status-hint"
+                  >
+                    {MEMBER_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {t.memberStatus[s]}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                  {/* Select nonaktif tidak ikut terkirim; status tetap dikirim untuk akun sendiri. */}
+                  {profile.id === user.id ? <input type="hidden" name="status" value={profile.status} /> : null}
+                  <p id="edit-status-hint" className="text-xs text-muted-foreground">
+                    {profile.id === user.id ? e.cannotChangeOwnStatus : e.statusHint}
+                  </p>
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="edit-note">{e.note}</Label>
+                  <Textarea id="edit-note" name="note" maxLength={500} rows={2} />
+                </div>
+              </div>
+            </ActionForm>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

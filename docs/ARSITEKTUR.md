@@ -144,6 +144,13 @@ Alur:
 Karena akun Auth dibuat lewat API Supabase (di luar transaksi Postgres), impor berjalan dua langkah: buat akun Auth untuk semua baris valid, lalu simpan data dalam satu transaksi dengan counter terkunci. Bila langkah kedua gagal, akun Auth yang baru dibuat dihapus lagi dan percobaan dicatat di `import_batches` berstatus `failed`. Akun dibuat tanpa password; anggota mengaktifkannya lewat tautan di email undangan.
 7. Catat di `import_batches` dan `audit_log`.
 
+Tambah dan ubah anggota lewat web (izin `member.import` dan `member.update`, admin):
+- **Tambah** (`/anggota/baru`): satu atau banyak baris, memakai `planImport` dan transaksi yang sama dengan impor file. Kode ID kosong dibuat otomatis. Riwayat impor mencatat sumber "Formulir web".
+- **Ubah profil** (halaman profil anggota): nama, email, No. HP, divisi, dan status. Logika murni di `src/lib/members/profile.ts`, dites. Batch tidak bisa diubah karena tertanam di kode ID yang permanen.
+- Ubah email juga mengubah email login Supabase Auth lebih dulu, lalu dikembalikan bila penyimpanan database gagal.
+- Ubah status atau email wajib bercatatan. Admin tidak bisa mengubah status akunnya sendiri, karena anggota nonaktif atau alumni tidak bisa login.
+- Semua perubahan masuk `audit_log` (`member.update`, berisi nilai lama dan baru). Anggota tidak dihapus permanen; gunakan status nonaktif atau alumni.
+
 Migrasi riwayat dari Google Sheets:
 - Template impor awal sudah disiapkan dari file absen (85 anggota).
 - Email dan HP belum ada di file, jadi dikumpulkan lewat formulir sebelum impor.
