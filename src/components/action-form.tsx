@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useActionState } from "react";
+import { type FormEvent, type ReactNode, startTransition, useActionState, useEffect, useRef } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { Button } from "@/components/ui/button";
 import { id as t } from "@/messages/id";
@@ -8,6 +8,12 @@ import { id as t } from "@/messages/id";
 type State = { error?: string; success?: string } | undefined;
 
 // Form Server Action sederhana: isi form dari children, pesan hasil, tombol kirim.
+//
+// React 19 mengosongkan form setelah action yang dipasang di prop `action`
+// selesai, termasuk saat server menolak isian. Pengguna lalu kehilangan
+// ketikannya dan pengiriman ulang tampak "tidak ada perubahan". Karena itu
+// action dipanggil manual: isian tetap saat galat, dan form dikosongkan
+// (kembali ke nilai default terbaru) hanya bila berhasil.
 export function ActionForm({
   action,
   submitLabel,
@@ -22,8 +28,21 @@ export function ActionForm({
   className?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (state?.success) formRef.current?.reset();
+  }, [state]);
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const formData = new FormData(event.currentTarget, submitter);
+    startTransition(() => formAction(formData));
+  }
+
   return (
-    <form action={formAction} className={className ?? "space-y-3"}>
+    <form ref={formRef} action={formAction} onSubmit={onSubmit} className={className ?? "space-y-3"}>
       {children}
       <FormMessage error={state?.error} success={state?.success} />
       <Button type="submit" variant={variant} size="sm" disabled={pending}>
