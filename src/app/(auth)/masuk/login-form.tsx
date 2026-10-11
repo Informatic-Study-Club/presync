@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { Turnstile } from "@/components/auth/turnstile";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginAction } from "@/lib/auth/actions";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 export function LoginForm({
   siteKey,
@@ -19,7 +19,7 @@ export function LoginForm({
   next?: string;
   initialError?: string;
 }) {
-  const [state, formAction, pending] = useActionState(
+  const [state, formAction, pending] = useSafeActionState(
     loginAction,
     initialError ? { error: initialError } : undefined,
   );

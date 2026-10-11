@@ -57,8 +57,20 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
   if (support === "checking") return <p className="text-sm text-muted-foreground">{t.common.loading}</p>;
   if (support === "unsupported") return <p className="text-sm text-muted-foreground">{p.unsupported}</p>;
 
-  function enable() {
+  // Galat (izin, service worker, server) ditampilkan sebagai pesan, bukan halaman error.
+  function guarded(run: () => Promise<void>) {
     startTransition(async () => {
+      try {
+        await run();
+      } catch (err) {
+        console.error("Notifikasi perangkat gagal", err);
+        setMessage({ error: t.common.unknownError });
+      }
+    });
+  }
+
+  function enable() {
+    guarded(async () => {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setMessage({ error: p.denied });
@@ -77,7 +89,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
   }
 
   function disable() {
-    startTransition(async () => {
+    guarded(async () => {
       if (!subscription) return;
       const endpoint = subscription.endpoint;
       await subscription.unsubscribe();
@@ -87,7 +99,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
   }
 
   function test() {
-    startTransition(async () => setMessage(await sendTestPushAction()));
+    guarded(async () => setMessage(await sendTestPushAction()));
   }
 
   return (

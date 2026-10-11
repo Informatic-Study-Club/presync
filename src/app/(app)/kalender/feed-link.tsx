@@ -1,14 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createFeedTokenAction } from "@/lib/academic/actions";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 export function FeedLink({ hasToken }: { hasToken: boolean }) {
-  const [state, action, pending] = useActionState(createFeedTokenAction, undefined);
+  const [state, action, pending] = useSafeActionState(createFeedTokenAction, undefined);
 
   return (
     <form action={action} className="space-y-3">

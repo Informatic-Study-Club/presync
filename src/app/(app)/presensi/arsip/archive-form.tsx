@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { archiveAction } from "@/lib/attendance/actions";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 const ar = t.attendance.archive;
 
 export function ArchiveForm() {
   const [file, setFile] = useState<File | null>(null);
   const [program, setProgram] = useState("");
-  const [state, dispatch, pending] = useActionState(archiveAction, undefined);
+  const [state, dispatch, pending] = useSafeActionState(archiveAction, undefined);
 
   function run(intent: "preview" | "commit") {
     if (!file) return;

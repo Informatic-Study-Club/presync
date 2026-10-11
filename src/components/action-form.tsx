@@ -1,9 +1,10 @@
 "use client";
 
-import { type FormEvent, type ReactNode, startTransition, useActionState, useEffect, useRef } from "react";
+import { type FormEvent, type ReactNode, startTransition, useEffect, useRef } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { Button } from "@/components/ui/button";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 type State = { error?: string; success?: string } | undefined;
 
@@ -27,7 +28,7 @@ export function ActionForm({
   children?: ReactNode;
   className?: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useSafeActionState(action, undefined);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {

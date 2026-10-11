@@ -1,15 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { startTotpEnrollmentAction, verifyTotpAction } from "@/lib/auth/actions";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 export function VerifyTotpForm({ factorId }: { factorId: string }) {
-  const [state, formAction, pending] = useActionState(verifyTotpAction, undefined);
+  const [state, formAction, pending] = useSafeActionState(verifyTotpAction, undefined);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -36,7 +36,7 @@ export function VerifyTotpForm({ factorId }: { factorId: string }) {
 }
 
 export function EnrollTotp() {
-  const [enrollment, startAction, starting] = useActionState(
+  const [enrollment, startAction, starting] = useSafeActionState(
     startTotpEnrollmentAction,
     undefined,
   );

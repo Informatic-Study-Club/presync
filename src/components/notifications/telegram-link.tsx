@@ -1,16 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { Button } from "@/components/ui/button";
 import { createTelegramLinkAction, unlinkTelegramAction } from "@/lib/notifications/actions";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 const tg = t.notifications.telegram;
 
 export function TelegramLink({ linked }: { linked: boolean }) {
-  const [link, createLink, creating] = useActionState(createTelegramLinkAction, undefined);
-  const [unlinkState, unlink, unlinking] = useActionState(unlinkTelegramAction, undefined);
+  const [link, createLink, creating] = useSafeActionState(createTelegramLinkAction, undefined);
+  const [unlinkState, unlink, unlinking] = useSafeActionState(unlinkTelegramAction, undefined);
 
   return (
     <div className="space-y-3 text-sm">

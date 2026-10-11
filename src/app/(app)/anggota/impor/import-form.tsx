@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { ImportPreviewTable } from "@/components/members/import-preview";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { importAction } from "@/lib/members/import/actions";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 export function ImportForm() {
   const [file, setFile] = useState<File | null>(null);
-  const [state, dispatch, pending] = useActionState(importAction, undefined);
+  const [state, dispatch, pending] = useSafeActionState(importAction, undefined);
 
   function run(intent: "preview" | "commit") {
     if (!file) return;

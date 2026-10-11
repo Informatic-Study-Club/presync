@@ -91,6 +91,19 @@ test.describe.serial("admin", () => {
     expect(failures).toEqual([]);
   });
 
+  test("gangguan server saat aksi formulir tampil sebagai pesan, bukan halaman error", async ({ page }) => {
+    await page.goto("/kas/kelola");
+    // Putus request Server Action (POST ke halaman ini) untuk mensimulasikan galat.
+    await page.route("**/kas/kelola", (route) =>
+      route.request().method() === "POST" ? route.abort("failed") : route.continue(),
+    );
+    await page.locator("#cat-name").fill(`Kategori ${Date.now()}`);
+    await page.getByRole("button", { name: "Tambah kategori" }).click();
+    await expect(page.getByText("Terjadi kesalahan. Coba lagi beberapa saat lagi.")).toBeVisible();
+    await expect(page.getByText("This page couldn")).toHaveCount(0);
+    await expect(page.locator("#cat-name")).not.toHaveValue("");
+  });
+
   test("laporan terunduh dalam tiga format", async ({ page }) => {
     const month = new Date().toISOString().slice(0, 7);
     const expected = { pdf: "application/pdf", xlsx: "spreadsheetml", csv: "text/csv" } as const;

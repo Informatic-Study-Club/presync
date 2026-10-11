@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useState } from "react";
 import { FormMessage } from "@/components/auth/form-message";
 import { ImportPreviewTable } from "@/components/members/import-preview";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { addMembersAction } from "@/lib/members/import/actions";
 import { id as t } from "@/messages/id";
+import { useSafeActionState } from "@/lib/use-safe-action-state";
 
 const a = t.members.add;
 const MAX_ROWS = 50;
@@ -40,7 +41,7 @@ export function AddMembersForm({
   const [rows, setRows] = useState<Row[]>(() => [blankRow({ divisi: "", batch: defaultBatch })]);
   // Pratinjau hanya berlaku untuk isian yang diperiksa; ubahan apa pun membatalkannya.
   const [dirty, setDirty] = useState(true);
-  const [state, dispatch, pending] = useActionState(addMembersAction, undefined);
+  const [state, dispatch, pending] = useSafeActionState(addMembersAction, undefined);
 
   function update(key: number, field: Field, value: string) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
