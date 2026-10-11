@@ -86,6 +86,22 @@ export const classSchema = z
   })
   .superRefine(refineMode);
 
+export const classUpdateSchema = z
+  .object({
+    classId: z.uuid(),
+    name: z.string().trim().min(3).max(120),
+    description: optionalText(1000),
+    plannedSessions: z.coerce.number().int().min(1).max(52),
+    startTime: timeField,
+    durationMinutes: z.coerce.number().int().min(15).max(720),
+    ...venue,
+    applyToUpcoming: z
+      .string()
+      .optional()
+      .transform((v) => v === "on"),
+  })
+  .superRefine(refineMode);
+
 export const sessionUpdateSchema = z
   .object({
     sessionId: z.uuid(),

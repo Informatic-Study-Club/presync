@@ -1,14 +1,18 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
 import {
   academicYears,
+  assessmentComponents,
+  assessmentScores,
+  attendance,
   calendarEvents,
+  certificateOverrides,
   calendarFeedTokens,
   classes,
   enrollments,
@@ -16,12 +20,14 @@ import {
   sessions,
   terms,
 } from "@/db/schema";
+import { writeAudit } from "@/lib/audit";
 import { can } from "@/lib/authz";
 import { requireSession } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
 import { id as t } from "@/messages/id";
 import { hashFeedToken } from "./feed";
 import { holidaysFor } from "./queries";
+import { classDeleteBlocker, regularSessionTitle, upcomingSessionPatches } from "./class-edit";
 import { generateRegularSessions } from "./schedule";
 import { addMinutes, isThursdayInJakarta, jakartaToUtc } from "./time";
 import {
@@ -29,6 +35,7 @@ import {
   activitySchema,
   calendarEventSchema,
   classSchema,
+  classUpdateSchema,
   extraSessionSchema,
   sessionStatusSchema,
   sessionUpdateSchema,
@@ -197,7 +204,7 @@ export async function createClassAction(_p: ActionState, fd: FormData): Promise<
 
 async function loadClass(classId: string) {
   const [cls] = await getDb()
-    .select({ id: classes.id, divisionId: classes.divisionId, name: classes.name })
+    .select({ id: classes.id, divisionId: classes.divisionId, name: classes.name, archivedAt: classes.archivedAt })
     .from(classes)
     .where(eq(classes.id, classId))
     .limit(1);
@@ -206,8 +213,15 @@ async function loadClass(classId: string) {
 
 async function loadSession(sessionId: string) {
   const [s] = await getDb()
-    .select({ id: sessions.id, kind: sessions.kind, classId: sessions.classId, divisionId: sessions.divisionId })
+    .select({
+      id: sessions.id,
+      kind: sessions.kind,
+      classId: sessions.classId,
+      divisionId: sessions.divisionId,
+      classArchivedAt: classes.archivedAt,
+    })
     .from(sessions)
+    .leftJoin(classes, eq(sessions.classId, classes.id))
     .where(eq(sessions.id, sessionId))
     .limit(1);
   return s ?? null;
@@ -227,6 +241,7 @@ export async function updateSessionAction(_p: ActionState, fd: FormData): Promis
   if (!target) return { error: t.errors.notFound };
   const resource = target.divisionId ? { divisionId: target.divisionId } : undefined;
   if (!can(user, "session.manage", resource)) return { error: t.errors.forbidden };
+  if (target.classArchivedAt) return { error: t.academic.classes.archivedLocked };
 
   const startsAt = jakartaToUtc(input.date, input.startTime);
   if (target.kind === "regular" && !isThursdayInJakarta(startsAt)) {
@@ -258,6 +273,7 @@ export async function setSessionStatusAction(_p: ActionState, fd: FormData): Pro
   if (!target) return { error: t.errors.notFound };
   const resource = target.divisionId ? { divisionId: target.divisionId } : undefined;
   if (!can(user, "session.manage", resource)) return { error: t.errors.forbidden };
+  if (target.classArchivedAt) return { error: t.academic.classes.archivedLocked };
 
   const result = await guard(() =>
     getDb()
@@ -282,6 +298,7 @@ export async function addExtraSessionAction(_p: ActionState, fd: FormData): Prom
   const cls = await loadClass(input.classId);
   if (!cls) return { error: t.errors.notFound };
   if (!can(user, "class.manage", { divisionId: cls.divisionId })) return { error: t.errors.forbidden };
+  if (cls.archivedAt) return { error: t.academic.classes.archivedLocked };
 
   const startsAt = jakartaToUtc(input.date, input.startTime);
   const result = await guard(() =>
@@ -343,6 +360,7 @@ export async function enrollMembersAction(_p: ActionState, fd: FormData): Promis
   const cls = await loadClass(parsed.data.classId);
   if (!cls) return { error: t.errors.notFound };
   if (!can(user, "class.manage", { divisionId: cls.divisionId })) return { error: t.errors.forbidden };
+  if (cls.archivedAt) return { error: t.academic.classes.archivedLocked };
 
   const db = getDb();
   // Hanya anggota aktif divisi kelas ini yang bisa didaftarkan.
@@ -374,12 +392,154 @@ export async function unenrollMemberAction(_p: ActionState, fd: FormData): Promi
   const cls = await loadClass(parsed.data.classId);
   if (!cls) return { error: t.errors.notFound };
   if (!can(user, "class.manage", { divisionId: cls.divisionId })) return { error: t.errors.forbidden };
+  if (cls.archivedAt) return { error: t.academic.classes.archivedLocked };
 
   await getDb()
     .delete(enrollments)
     .where(and(eq(enrollments.classId, cls.id), eq(enrollments.memberId, parsed.data.memberId)));
   revalidatePath(`/kelas/${cls.id}`);
   return { success: t.academic.classes.unenrolled };
+}
+
+// ---------------------------------------------------------------- ubah, arsip, hapus kelas
+
+export async function updateClassAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user } = await requireSession();
+  const parsed = classUpdateSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const input = parsed.data;
+  const cls = await loadClass(input.classId);
+  if (!cls) return { error: t.errors.notFound };
+  if (!can(user, "class.manage", { divisionId: cls.divisionId })) return { error: t.errors.forbidden };
+  if (cls.archivedAt) return { error: t.academic.classes.archivedLocked };
+
+  const db = getDb();
+  const regular = await db
+    .select({ id: sessions.id, sequence: sessions.sequence, startsAt: sessions.startsAt, status: sessions.status })
+    .from(sessions)
+    .where(and(eq(sessions.classId, cls.id), eq(sessions.kind, "regular")));
+  const patches = input.applyToUpcoming ? upcomingSessionPatches(regular, input, new Date()) : [];
+
+  const result = await guard(() =>
+    db.transaction(async (tx) => {
+      await tx
+        .update(classes)
+        .set({
+          name: input.name,
+          description: input.description,
+          plannedSessions: input.plannedSessions,
+          defaultStartTime: input.startTime,
+          defaultDurationMinutes: input.durationMinutes,
+          defaultMode: input.mode,
+          defaultLocation: input.location,
+          defaultMeetingUrl: input.meetingUrl,
+        })
+        .where(eq(classes.id, cls.id));
+      if (input.name !== cls.name) {
+        for (const s of regular) {
+          await tx
+            .update(sessions)
+            .set({ title: regularSessionTitle(input.name, s.sequence), updatedAt: new Date() })
+            .where(eq(sessions.id, s.id));
+        }
+      }
+      for (const { id, ...values } of patches) {
+        await tx.update(sessions).set({ ...values, updatedAt: new Date() }).where(eq(sessions.id, id));
+      }
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "class.update",
+        entityType: "class",
+        entityId: cls.id,
+        data: { name: input.name, previousName: cls.name, upcomingSessionsUpdated: patches.length },
+      });
+      return true;
+    }),
+  );
+  if (typeof result === "object") return result;
+  revalidatePath("/kelas");
+  revalidatePath(`/kelas/${cls.id}`);
+  revalidatePath("/kalender");
+  return { success: t.academic.classes.saved(patches.length) };
+}
+
+const archiveSchema = z.object({ classId: z.uuid(), archived: z.enum(["true", "false"]) });
+
+export async function setClassArchivedAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user } = await requireSession();
+  const parsed = archiveSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { error: t.auth.invalidInput };
+  const cls = await loadClass(parsed.data.classId);
+  if (!cls) return { error: t.errors.notFound };
+  if (!can(user, "class.manage", { divisionId: cls.divisionId })) return { error: t.errors.forbidden };
+  const archive = parsed.data.archived === "true";
+
+  await getDb().transaction(async (tx) => {
+    await tx
+      .update(classes)
+      .set({ archivedAt: archive ? new Date() : null })
+      .where(eq(classes.id, cls.id));
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: archive ? "class.archive" : "class.unarchive",
+      entityType: "class",
+      entityId: cls.id,
+      note: cls.name,
+    });
+  });
+  revalidatePath("/kelas");
+  revalidatePath(`/kelas/${cls.id}`);
+  return { success: archive ? t.academic.classes.archivedSaved : t.academic.classes.unarchivedSaved };
+}
+
+const deleteClassSchema = z.object({ classId: z.uuid(), confirmName: z.string().trim().max(200) });
+
+export async function deleteClassAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user } = await requireSession();
+  const parsed = deleteClassSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { error: t.auth.invalidInput };
+  const cls = await loadClass(parsed.data.classId);
+  if (!cls) return { error: t.errors.notFound };
+  if (!can(user, "class.manage", { divisionId: cls.divisionId })) return { error: t.errors.forbidden };
+  if (parsed.data.confirmName !== cls.name) return { error: t.academic.classes.deleteMismatch };
+
+  const blocked = await getDb().transaction(async (tx) => {
+    // Kunci baris kelas, lalu hitung pemakaian di transaksi yang sama dengan
+    // penghapusan, supaya presensi yang masuk bersamaan tidak ikut terhapus.
+    await tx.select({ id: classes.id }).from(classes).where(eq(classes.id, cls.id)).for("update");
+    const classSessions = tx.select({ id: sessions.id }).from(sessions).where(eq(sessions.classId, cls.id));
+    const [att] = await tx.select({ n: count() }).from(attendance).where(inArray(attendance.sessionId, classSessions));
+    const [scores] = await tx
+      .select({ n: count() })
+      .from(assessmentScores)
+      .innerJoin(assessmentComponents, eq(assessmentScores.componentId, assessmentComponents.id))
+      .where(eq(assessmentComponents.classId, cls.id));
+    const [overrides] = await tx
+      .select({ n: count() })
+      .from(certificateOverrides)
+      .where(eq(certificateOverrides.classId, cls.id));
+    const reason = classDeleteBlocker({
+      attendance: att?.n ?? 0,
+      scores: scores?.n ?? 0,
+      overrides: overrides?.n ?? 0,
+    });
+    if (reason) return reason;
+
+    await tx.delete(classes).where(eq(classes.id, cls.id));
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: "class.delete",
+      entityType: "class",
+      entityId: cls.id,
+      note: cls.name,
+    });
+    return null;
+  });
+  if (blocked) return { error: t.academic.classes.deleteBlocked[blocked] };
+
+  revalidatePath("/kelas");
+  revalidatePath("/kalender");
+  redirect("/kelas");
 }
 
 // ---------------------------------------------------------------- feed .ics

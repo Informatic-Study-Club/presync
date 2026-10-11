@@ -64,6 +64,13 @@
       "when": 1791598504184,
       "tag": "0008_penilaian_sertifikat",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791688057460,
+      "tag": "0009_arsip_kelas",
+      "breakpoints": true
     }
   ]
 }

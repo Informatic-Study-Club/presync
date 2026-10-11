@@ -20,11 +20,12 @@ const timeFormat = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
-export default async function ClassesPage() {
+export default async function ClassesPage({ searchParams }: PageProps<"/kelas">) {
   const session = await requireSession();
   const viewer = await loadViewer(session);
+  const showArchived = (await searchParams).arsip === "1";
   const [classList, activities, managed] = await Promise.all([
-    listClasses(viewer),
+    listClasses(viewer, { includeArchived: showArchived }),
     listActivities(viewer, new Date()),
     managedDivisions(session.user),
   ]);
@@ -45,13 +46,22 @@ export default async function ClassesPage() {
         ) : null}
       </div>
 
+      {managed.length > 0 ? (
+        <Link
+          href={showArchived ? "/kelas" : "/kelas?arsip=1"}
+          className="inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          {showArchived ? c.hideArchived : c.showArchived}
+        </Link>
+      ) : null}
+
       {classList.length === 0 ? (
         <p className="text-sm text-muted-foreground">{c.empty}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {classList.map((cls) => (
             <Link key={cls.id} href={`/kelas/${cls.id}`} className="block">
-              <Card className="h-full transition-colors hover:bg-muted/40">
+              <Card className={`h-full transition-colors hover:bg-muted/40 ${cls.archivedAt ? "opacity-70" : ""}`}>
                 <CardHeader>
                   <CardTitle>{cls.name}</CardTitle>
                 </CardHeader>
@@ -61,6 +71,7 @@ export default async function ClassesPage() {
                     <Badge variant="outline">
                       {cls.yearName} {cls.termName}
                     </Badge>
+                    {cls.archivedAt ? <Badge variant="destructive">{c.archived}</Badge> : null}
                   </div>
                   <p className="text-muted-foreground">{c.progress(cls.doneSessions, cls.plannedSessions)}</p>
                   <p className="text-muted-foreground">{c.enrolled(cls.enrolled)}</p>

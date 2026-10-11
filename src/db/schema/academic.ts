@@ -102,6 +102,9 @@ export const classes = pgTable(
     defaultMeetingUrl: text("default_meeting_url"),
     createdBy: uuid("created_by").references(() => members.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // Kelas diarsipkan disembunyikan dari daftar dan tidak bisa diubah; data
+    // presensi dan nilainya tetap utuh.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (t) => [
     check("classes_planned_sessions_range", sql`${t.plannedSessions} between 1 and 52`),

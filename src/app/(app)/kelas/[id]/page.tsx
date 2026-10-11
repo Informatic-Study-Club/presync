@@ -8,13 +8,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import {
   addExtraSessionAction,
+  deleteClassAction,
   enrollMembersAction,
+  setClassArchivedAction,
   setSessionStatusAction,
   unenrollMemberAction,
+  updateClassAction,
   updateSessionAction,
 } from "@/lib/academic/actions";
 import { getClassDetail, loadViewer } from "@/lib/academic/queries";
@@ -59,6 +64,8 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
   const done = detail.sessions.filter((s) => s.kind === "regular" && s.status === "done").length;
   const recap = detail.canManage ? await classRecap(detail.id) : [];
   const mine = detail.canManage ? null : await ownResult(session.user, detail.id);
+  // Kelas diarsipkan hanya bisa dilihat; server juga menolak perubahannya.
+  const editable = detail.canManage && !detail.archivedAt;
 
   return (
     <div className="space-y-6">
@@ -68,6 +75,12 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
             {c.created(created.pertemuan, created.libur ?? 0)}
             {created.kurang ? ` ${c.shortfall(created.kurang)}` : ""}
           </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {detail.archivedAt ? (
+        <Alert>
+          <AlertDescription>{c.archivedBanner}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -158,7 +171,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                   </div>
                 </div>
 
-                {detail.canManage ? (
+                {editable ? (
                   <details className="rounded-lg border p-3">
                     <summary className="cursor-pointer text-muted-foreground">
                       {c.setStatus} / {c.editSession}
@@ -243,6 +256,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
             </CardContent>
           </Card>
 
+          {editable ? (
           <Card>
             <CardHeader>
               <CardTitle>{c.addExtra}</CardTitle>
@@ -273,6 +287,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
               </ActionForm>
             </CardContent>
           </Card>
+          ) : null}
 
           <Card>
             <CardHeader>
@@ -289,15 +304,18 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                       <span>
                         <span className="font-mono text-muted-foreground">{m.memberCode}</span> {m.fullName}
                       </span>
-                      <ActionForm action={unenrollMemberAction} submitLabel={c.unenroll} variant="outline" className="flex items-center gap-2">
-                        <input type="hidden" name="classId" value={detail.id} />
-                        <input type="hidden" name="memberId" value={m.id} />
-                      </ActionForm>
+                      {editable ? (
+                        <ActionForm action={unenrollMemberAction} submitLabel={c.unenroll} variant="outline" className="flex items-center gap-2">
+                          <input type="hidden" name="classId" value={detail.id} />
+                          <input type="hidden" name="memberId" value={m.id} />
+                        </ActionForm>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
               )}
 
+              {editable ? (
               <div className="space-y-2 border-t pt-4">
                 <p className="font-medium">{c.enroll}</p>
                 {detail.candidates.length === 0 ? (
@@ -317,9 +335,125 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                   </ActionForm>
                 )}
               </div>
+              ) : null}
             </CardContent>
           </Card>
         </>
+      ) : null}
+
+      {editable ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{c.edit}</CardTitle>
+            <CardDescription>{c.editDescription}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ActionForm action={updateClassAction} submitLabel={c.edit} className="space-y-4 text-sm">
+              <input type="hidden" name="classId" value={detail.id} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field id="edit-class-name" label={f.name}>
+                  <Input id="edit-class-name" name="name" defaultValue={detail.name} required minLength={3} maxLength={120} />
+                </Field>
+                <Field id="edit-class-planned" label={f.plannedSessions}>
+                  <Input
+                    id="edit-class-planned"
+                    name="plannedSessions"
+                    type="number"
+                    min={1}
+                    max={52}
+                    defaultValue={detail.plannedSessions}
+                    required
+                    aria-describedby="edit-class-planned-hint"
+                  />
+                  <p id="edit-class-planned-hint" className="text-xs text-muted-foreground">
+                    {c.plannedHint}
+                  </p>
+                </Field>
+                <Field id="edit-class-time" label={f.startTime}>
+                  <Input
+                    id="edit-class-time"
+                    name="startTime"
+                    type="time"
+                    defaultValue={detail.defaultStartTime.slice(0, 5)}
+                    required
+                  />
+                </Field>
+                <Field id="edit-class-duration" label={f.duration}>
+                  <Input
+                    id="edit-class-duration"
+                    name="durationMinutes"
+                    type="number"
+                    min={15}
+                    max={720}
+                    defaultValue={detail.defaultDurationMinutes}
+                    required
+                  />
+                </Field>
+              </div>
+              <VenueFields
+                prefix="edit-class"
+                mode={detail.defaultMode}
+                location={detail.defaultLocation}
+                meetingUrl={detail.defaultMeetingUrl}
+              />
+              <Field id="edit-class-description" label={f.description}>
+                <Textarea
+                  id="edit-class-description"
+                  name="description"
+                  rows={2}
+                  maxLength={1000}
+                  defaultValue={detail.description ?? ""}
+                />
+              </Field>
+              <div className="space-y-1">
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" name="applyToUpcoming" className="mt-0.5" />
+                  <span>{c.applyUpcoming}</span>
+                </label>
+                <p className="pl-6 text-xs text-muted-foreground">{c.applyUpcomingHint}</p>
+              </div>
+            </ActionForm>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {detail.canManage ? (
+        <Card className="ring-destructive/20">
+          <CardHeader>
+            <CardTitle>{c.danger}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5 text-sm">
+            <div className="space-y-2">
+              <p className="text-muted-foreground">{c.archiveHint}</p>
+              <ActionForm
+                action={setClassArchivedAction}
+                submitLabel={detail.archivedAt ? c.unarchive : c.archive}
+                variant="outline"
+              >
+                <input type="hidden" name="classId" value={detail.id} />
+                <input type="hidden" name="archived" value={detail.archivedAt ? "false" : "true"} />
+              </ActionForm>
+            </div>
+            <div className="space-y-2 border-t pt-5">
+              <p className="font-medium">{c.delete}</p>
+              <p className="text-muted-foreground">{c.deleteHint}</p>
+              <ActionForm action={deleteClassAction} submitLabel={c.delete} variant="destructive">
+                <input type="hidden" name="classId" value={detail.id} />
+                <div className="space-y-1">
+                  <Label htmlFor="delete-class-confirm">{c.deleteConfirm}</Label>
+                  <Input
+                    id="delete-class-confirm"
+                    name="confirmName"
+                    required
+                    autoComplete="off"
+                    placeholder={detail.name}
+                    className="sm:max-w-sm"
+                  />
+                </div>
+              </ActionForm>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

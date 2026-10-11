@@ -169,7 +169,7 @@ export async function managedDivisions(user: SessionUser) {
   return all.filter((d) => can(user, "class.manage", { divisionId: d.id }));
 }
 
-export async function listClasses(viewer: Viewer) {
+export async function listClasses(viewer: Viewer, options: { includeArchived?: boolean } = {}) {
   const db = getDb();
   const rows = await db
     .select({
@@ -180,11 +180,13 @@ export async function listClasses(viewer: Viewer) {
       termName: terms.name,
       yearName: academicYears.name,
       plannedSessions: classes.plannedSessions,
+      archivedAt: classes.archivedAt,
     })
     .from(classes)
     .innerJoin(divisions, eq(classes.divisionId, divisions.id))
     .innerJoin(terms, eq(classes.termId, terms.id))
     .innerJoin(academicYears, eq(terms.academicYearId, academicYears.id))
+    .where(options.includeArchived ? undefined : isNull(classes.archivedAt))
     .orderBy(desc(terms.startsOn), asc(divisions.name), asc(classes.name));
 
   const visible = rows.filter(
@@ -230,6 +232,7 @@ export async function getClassDetail(viewer: Viewer, classId: string) {
       defaultMode: classes.defaultMode,
       defaultLocation: classes.defaultLocation,
       defaultMeetingUrl: classes.defaultMeetingUrl,
+      archivedAt: classes.archivedAt,
     })
     .from(classes)
     .innerJoin(divisions, eq(classes.divisionId, divisions.id))
