@@ -70,6 +70,15 @@ test.describe.serial("admin", () => {
     await expect(page.getByText("Kelas sudah punya data presensi. Arsipkan saja agar riwayat tetap utuh.")).toBeVisible();
   });
 
+  test("hapus komponen nilai yang sudah bernilai ditolak", async ({ page }) => {
+    await page.goto("/kelas");
+    await page.getByRole("link", { name: /Web Development Dasar/ }).first().click();
+    await page.getByRole("link", { name: "Penilaian dan Sertifikat" }).click();
+    const item = page.getByRole("listitem").filter({ hasText: "Tugas kelompok" });
+    await item.getByRole("button", { name: "Hapus" }).click();
+    await expect(item.getByText(/Komponen sudah punya \d+ nilai/)).toBeVisible();
+  });
+
   test("laporan terunduh dalam tiga format", async ({ page }) => {
     const month = new Date().toISOString().slice(0, 7);
     const expected = { pdf: "application/pdf", xlsx: "spreadsheetml", csv: "text/csv" } as const;

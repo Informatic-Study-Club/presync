@@ -988,6 +988,8 @@ export const id = {
     saved: "Tersimpan.",
     errors: {
       keyTaken: "Komponen dengan nama serupa sudah ada.",
+      componentHasScores: (n: number) =>
+        `Komponen sudah punya ${n} nilai, jadi tidak bisa dihapus agar nilai tidak ikut hilang. Ubah bobotnya menjadi 0 bila tidak dipakai lagi.`,
       weightTooHigh: (n: number) => `Total bobot akan menjadi ${n}%, melebihi 100%.`,
       attendanceTwice: "Kelas hanya boleh punya satu komponen kehadiran.",
       scoreInvalid: (value: string) => `Nilai "${value}" tidak valid (0-100).`,

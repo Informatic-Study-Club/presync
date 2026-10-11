@@ -200,12 +200,30 @@ export async function updateComponent(
 }
 
 export async function deleteComponent(user: SessionUser, componentId: string): Promise<Result> {
-  const [component] = await getDb().select().from(assessmentComponents).where(eq(assessmentComponents.id, componentId)).limit(1);
+  const db = getDb();
+  const [component] = await db.select().from(assessmentComponents).where(eq(assessmentComponents.id, componentId)).limit(1);
   if (!component) return { ok: false, message: t.errors.notFound };
   const { cls, error } = await requireManage(user, component.classId);
   if (!cls) return { ok: false, message: error };
-  await getDb().delete(assessmentComponents).where(eq(assessmentComponents.id, component.id));
-  return { ok: true, message: t.assessment.saved };
+  return db.transaction(async (tx) => {
+    // Nilai ikut terhapus (cascade), jadi komponen yang sudah bernilai ditolak.
+    // Dicek di transaksi yang sama dengan penghapusan, dengan baris dikunci.
+    await tx.select({ id: assessmentComponents.id }).from(assessmentComponents).where(eq(assessmentComponents.id, component.id)).for("update");
+    const [scored] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(assessmentScores)
+      .where(eq(assessmentScores.componentId, component.id));
+    if ((scored?.n ?? 0) > 0) return { ok: false, message: t.assessment.errors.componentHasScores(scored!.n) };
+    await tx.delete(assessmentComponents).where(eq(assessmentComponents.id, component.id));
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: "assessment.component_delete",
+      entityType: "assessment_component",
+      entityId: component.id,
+      data: { classId: cls.id, name: component.name, weight: component.weight },
+    });
+    return { ok: true, message: t.assessment.saved };
+  });
 }
 
 export async function applyWebDevTemplate(user: SessionUser, classId: string): Promise<Result> {
