@@ -53,6 +53,8 @@ bun install
 bun run dev                    # server pengembangan
 bun run lint && bun run typecheck
 bun test                       # tes unit logika bisnis
+bun run lokal:start            # Supabase lokal (Docker); lalu: bun run lokal migrate / seed / dev
+bun run lokal test             # tes end-to-end Playwright terhadap Supabase lokal
 bun run db:generate            # buat migrasi dari perubahan skema Drizzle
 bun run db:migrate             # jalankan migrasi (pakai DATABASE_URL_DIRECT)
 bun run db:check-rls           # cek RLS, policy, dan API publik Supabase

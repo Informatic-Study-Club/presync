@@ -39,11 +39,13 @@ bun run lokal:start     # Supabase lokal (pertama kali mengunduh image Docker)
 bun run lokal migrate   # migrasi Drizzle + cek RLS
 bun run lokal seed      # divisi + data dummy: akun uji, kelas, presensi, kas
 bun run lokal dev       # aplikasi di http://localhost:3001
+bun run lokal test      # tes end-to-end Playwright (sekali: bunx playwright install chromium)
 bun run lokal:stop
 ```
 
 - Akun uji ada di `scripts/seed-dummy.ts` (`admin@presync.test`, `bendahara@presync.test`, `koordinator.web@presync.test`, `anggota01@presync.test`, dan seterusnya).
 - Email undangan dan reset password masuk ke Mailpit di http://127.0.0.1:54324.
+- Tes e2e ada di `e2e/` (berkas `*.e2e.ts`, tidak ikut `bun test`) dan juga berjalan di GitHub Actions (`.github/workflows/e2e.yml`) untuk setiap pull request.
 - Untuk mengulang dari awal: `bunx supabase@2.120.0 db reset`, lalu `migrate` dan `seed` lagi.
 
 ## Data anggota

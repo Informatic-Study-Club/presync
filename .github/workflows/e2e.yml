@@ -1,0 +1,51 @@
+# Tes end-to-end (Playwright) terhadap Supabase lokal di runner GitHub.
+# Tidak memakai secret atau database staging/production: semua data berasal
+# dari seed dummy (scripts/seed-dummy.ts) di dalam container runner.
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+
+      - name: Nyalakan Supabase lokal
+        run: bunx supabase@2.120.0 start --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor
+
+      - name: Migrasi dan data dummy
+        run: |
+          bun run lokal migrate
+          bun run lokal seed
+
+      - name: Pasang Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Tes e2e
+        run: bun run lokal test
+
+      - name: Simpan laporan bila gagal
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
