@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { archivePrograms } from "@/lib/attendance/archive-service";
 import { can } from "@/lib/authz";
@@ -21,11 +22,8 @@ export default async function ArchivePage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader title={ar.title} description={ar.description} />
       <Card>
-        <CardHeader>
-          <CardTitle>{ar.title}</CardTitle>
-          <CardDescription>{ar.description}</CardDescription>
-        </CardHeader>
         <CardContent>
           <ArchiveForm />
         </CardContent>

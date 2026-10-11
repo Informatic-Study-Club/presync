@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
 import { Field } from "@/components/academic/venue-fields";
 import { ActionForm } from "@/components/action-form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { checkinAction } from "@/lib/attendance/actions";
 import { requireSession } from "@/lib/auth/session";
@@ -14,27 +15,26 @@ export default async function CheckinPage() {
   const c = t.attendance.checkin;
 
   return (
-    <Card className="mx-auto max-w-md">
-      <CardHeader>
-        <CardTitle>{c.title}</CardTitle>
-        <CardDescription>{c.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ActionForm action={checkinAction} submitLabel={c.submit}>
-          <Field id="checkin-code" label={c.code}>
-            <Input
-              id="checkin-code"
-              name="code"
-              required
-              maxLength={8}
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              className="font-mono text-2xl tracking-[0.3em] uppercase"
-            />
-          </Field>
-        </ActionForm>
-      </CardContent>
-    </Card>
+    <div className="mx-auto max-w-md space-y-6">
+      <PageHeader title={c.title} description={c.description} />
+      <Card>
+        <CardContent>
+          <ActionForm action={checkinAction} submitLabel={c.submit}>
+            <Field id="checkin-code" label={c.code}>
+              <Input
+                id="checkin-code"
+                name="code"
+                required
+                maxLength={8}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                className="font-mono text-2xl tracking-[0.3em] uppercase"
+              />
+            </Field>
+          </ActionForm>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

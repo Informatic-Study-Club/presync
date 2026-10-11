@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,16 +22,18 @@ export default async function PrivacyPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.privacy.requestTitle}</CardTitle>
-          <CardDescription>
+      <PageHeader
+        title={t.privacy.requestTitle}
+        description={
+          <>
             {t.privacy.requestDescription}{" "}
             <Link href="/kebijakan-data" className="text-primary underline-offset-4 hover:underline">
               {t.privacy.readPolicy}
             </Link>
-          </CardDescription>
-        </CardHeader>
+          </>
+        }
+      />
+      <Card>
         <CardContent>
           <ActionForm action={submitDataRequestAction} submitLabel={t.privacy.submit}>
             <div className="space-y-1">

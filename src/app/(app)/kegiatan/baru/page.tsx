@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
 import { Field, VenueFields } from "@/components/academic/venue-fields";
 import { ActionForm } from "@/components/action-form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { createActivityAction } from "@/lib/academic/actions";
@@ -23,42 +24,41 @@ export default async function NewActivityPage() {
   if (divisions.length === 0 && !canAllDivisions) notFound();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.academic.classes.activityTitle}</CardTitle>
-        <CardDescription>{t.academic.classes.activityDescription}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ActionForm action={createActivityAction} submitLabel={t.academic.classes.createActivity} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field id="act-title" label={f.title}>
-              <Input id="act-title" name="title" required minLength={3} maxLength={120} />
-            </Field>
-            <Field id="act-division" label={f.division}>
-              <NativeSelect id="act-division" name="divisionId" className="w-full">
-                {canAllDivisions ? <option value="">{t.academic.allDivisions}</option> : null}
-                {divisions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-            <Field id="act-date" label={f.date}>
-              <Input id="act-date" name="date" type="date" defaultValue={todayInJakarta()} required />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field id="act-time" label={f.startTime}>
-                <Input id="act-time" name="startTime" type="time" defaultValue="09:00" required />
+    <div className="space-y-6">
+      <PageHeader title={t.academic.classes.activityTitle} description={t.academic.classes.activityDescription} />
+      <Card>
+        <CardContent>
+          <ActionForm action={createActivityAction} submitLabel={t.academic.classes.createActivity} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field id="act-title" label={f.title}>
+                <Input id="act-title" name="title" required minLength={3} maxLength={120} />
               </Field>
-              <Field id="act-duration" label={f.duration}>
-                <Input id="act-duration" name="durationMinutes" type="number" min={15} max={1440} defaultValue={120} required />
+              <Field id="act-division" label={f.division}>
+                <NativeSelect id="act-division" name="divisionId" className="w-full">
+                  {canAllDivisions ? <option value="">{t.academic.allDivisions}</option> : null}
+                  {divisions.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </NativeSelect>
               </Field>
+              <Field id="act-date" label={f.date}>
+                <Input id="act-date" name="date" type="date" defaultValue={todayInJakarta()} required />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field id="act-time" label={f.startTime}>
+                  <Input id="act-time" name="startTime" type="time" defaultValue="09:00" required />
+                </Field>
+                <Field id="act-duration" label={f.duration}>
+                  <Input id="act-duration" name="durationMinutes" type="number" min={15} max={1440} defaultValue={120} required />
+                </Field>
+              </div>
             </div>
-          </div>
-          <VenueFields prefix="act" />
-        </ActionForm>
-      </CardContent>
-    </Card>
+            <VenueFields prefix="act" />
+          </ActionForm>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

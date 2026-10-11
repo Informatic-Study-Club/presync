@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
 import { ActionForm } from "@/components/action-form";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { can } from "@/lib/authz";
@@ -22,53 +23,53 @@ export default async function DataRequestsAdminPage() {
   const requests = await allDataRequests();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.privacy.manageTitle}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        {requests.length === 0 ? (
-          <p className="text-muted-foreground">{t.privacy.manageEmpty}</p>
-        ) : (
-          requests.map((r) => (
-            <div key={r.id} className="space-y-2 rounded-lg border p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/anggota/${r.memberId}`} className="font-medium hover:underline">
-                  {r.memberName} ({r.memberCode})
-                </Link>
-                <span>{t.privacy.kinds[r.kind]}</span>
-                <Badge variant={r.status === "pending" ? "outline" : "secondary"}>
-                  {t.privacy.statuses[r.status]}
-                </Badge>
-                <span className="text-muted-foreground">{dateFormat.format(r.createdAt)}</span>
-              </div>
-              <p className="whitespace-pre-wrap">{r.reason}</p>
-              {r.status === "pending" ? (
-                <div className="flex flex-wrap gap-4">
-                  {(["done", "rejected"] as const).map((status) => (
-                    <ActionForm
-                      key={status}
-                      action={resolveDataRequestAction}
-                      submitLabel={status === "done" ? t.privacy.markDone : t.privacy.reject}
-                      variant={status === "done" ? "default" : "outline"}
-                      className="flex-1 space-y-2"
-                    >
-                      <input type="hidden" name="requestId" value={r.id} />
-                      <input type="hidden" name="status" value={status} />
-                      <Label htmlFor={`note-${r.id}-${status}`}>{t.privacy.resolutionNote}</Label>
-                      <Textarea id={`note-${r.id}-${status}`} name="note" required minLength={3} rows={2} />
-                    </ActionForm>
-                  ))}
+    <div className="space-y-6">
+      <PageHeader title={t.privacy.manageTitle} />
+      <Card>
+        <CardContent className="space-y-3 text-sm">
+          {requests.length === 0 ? (
+            <p className="text-muted-foreground">{t.privacy.manageEmpty}</p>
+          ) : (
+            requests.map((r) => (
+              <div key={r.id} className="space-y-2 rounded-lg border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={`/anggota/${r.memberId}`} className="font-medium hover:underline">
+                    {r.memberName} ({r.memberCode})
+                  </Link>
+                  <span>{t.privacy.kinds[r.kind]}</span>
+                  <Badge variant={r.status === "pending" ? "outline" : "secondary"}>
+                    {t.privacy.statuses[r.status]}
+                  </Badge>
+                  <span className="text-muted-foreground">{dateFormat.format(r.createdAt)}</span>
                 </div>
-              ) : r.resolutionNote ? (
-                <p className="text-muted-foreground">
-                  {t.privacy.resolutionNote}: {r.resolutionNote}
-                </p>
-              ) : null}
-            </div>
-          ))
-        )}
-      </CardContent>
-    </Card>
+                <p className="whitespace-pre-wrap">{r.reason}</p>
+                {r.status === "pending" ? (
+                  <div className="flex flex-wrap gap-4">
+                    {(["done", "rejected"] as const).map((status) => (
+                      <ActionForm
+                        key={status}
+                        action={resolveDataRequestAction}
+                        submitLabel={status === "done" ? t.privacy.markDone : t.privacy.reject}
+                        variant={status === "done" ? "default" : "outline"}
+                        className="flex-1 space-y-2"
+                      >
+                        <input type="hidden" name="requestId" value={r.id} />
+                        <input type="hidden" name="status" value={status} />
+                        <Label htmlFor={`note-${r.id}-${status}`}>{t.privacy.resolutionNote}</Label>
+                        <Textarea id={`note-${r.id}-${status}`} name="note" required minLength={3} rows={2} />
+                      </ActionForm>
+                    ))}
+                  </div>
+                ) : r.resolutionNote ? (
+                  <p className="text-muted-foreground">
+                    {t.privacy.resolutionNote}: {r.resolutionNote}
+                  </p>
+                ) : null}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

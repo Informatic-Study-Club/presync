@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { can } from "@/lib/authz";
 import { requireSession } from "@/lib/auth/session";
@@ -27,11 +28,8 @@ export default async function ImportPage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader title={t.import.title} description={t.import.description} />
       <Card>
-        <CardHeader>
-          <CardTitle>{t.import.title}</CardTitle>
-          <CardDescription>{t.import.description}</CardDescription>
-        </CardHeader>
         <CardContent className="space-y-4">
           <Button
             variant="outline"
