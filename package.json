@@ -15,7 +15,10 @@
     "db:check-rls": "bun run scripts/check-rls.ts",
     "seed:divisi": "bun run scripts/seed-divisi.ts",
     "buat-admin": "bun run scripts/buat-admin.ts",
-    "telegram:webhook": "bun run scripts/telegram-webhook.ts"
+    "telegram:webhook": "bun run scripts/telegram-webhook.ts",
+    "lokal": "bun run scripts/lokal.ts",
+    "lokal:start": "bunx supabase@2.120.0 start",
+    "lokal:stop": "bunx supabase@2.120.0 stop"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

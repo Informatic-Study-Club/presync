@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-lokal/
 /out/
 
 # production
@@ -48,3 +49,5 @@ next-env.d.ts
 
 # catatan lokal (kontak, akun) yang tidak boleh masuk repo publik
 *.local.md
+
+certificates

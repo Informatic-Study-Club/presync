@@ -30,6 +30,22 @@ bun test
 
 Migrasi database tidak berjalan otomatis saat deploy. Lihat `docs/SERAH-TERIMA.md` bagian 5.
 
+## Uji lokal dengan Supabase lokal
+
+Butuh Docker Desktop. Semua data tetap di laptop dan tidak menyentuh staging, karena `.env` tidak dipakai untuk koneksi.
+
+```bash
+bun run lokal:start     # Supabase lokal (pertama kali mengunduh image Docker)
+bun run lokal migrate   # migrasi Drizzle + cek RLS
+bun run lokal seed      # divisi + data dummy: akun uji, kelas, presensi, kas
+bun run lokal dev       # aplikasi di http://localhost:3001
+bun run lokal:stop
+```
+
+- Akun uji ada di `scripts/seed-dummy.ts` (`admin@presync.test`, `bendahara@presync.test`, `koordinator.web@presync.test`, `anggota01@presync.test`, dan seterusnya).
+- Email undangan dan reset password masuk ke Mailpit di http://127.0.0.1:54324.
+- Untuk mengulang dari awal: `bunx supabase@2.120.0 db reset`, lalu `migrate` dan `seed` lagi.
+
 ## Data anggota
 
 Jangan commit file `.env`, API key, atau data anggota nyata (nama, email, nomor HP, file impor). Template impor berisi data asli disimpan di luar repo.
