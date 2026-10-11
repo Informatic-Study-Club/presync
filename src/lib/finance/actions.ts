@@ -8,6 +8,7 @@ import { requireSession } from "@/lib/auth/session";
 import { id as t } from "@/messages/id";
 import { isMonth } from "./ledger";
 import { parseRupiah } from "./money";
+import { scheduleInputSchema, scheduleUpdateSchema } from "./schedule-edit";
 import * as service from "./service";
 
 export type ActionState = { error?: string; success?: string } | undefined;
@@ -24,10 +25,6 @@ const amountField = z.string().transform((v, ctx) => {
 const dateField = z.string().refine(isDateString, f.dateInvalid);
 const monthField = z.string().refine(isMonth, f.monthInvalid);
 const reasonField = z.string().trim().min(3, t.errors.noteRequired).max(500);
-const optionalUuid = z
-  .string()
-  .transform((v) => (v === "" ? null : v))
-  .pipe(z.uuid().nullable());
 
 async function guarded<S extends z.ZodType>(
   action: Action,
@@ -68,35 +65,48 @@ export async function toggleCategoryAction(_p: ActionState, fd: FormData): Promi
 }
 
 export async function createScheduleAction(_p: ActionState, fd: FormData): Promise<ActionState> {
-  const schema = z
-    .object({
-      name: z.string().trim().min(3).max(80),
-      categoryId: z.uuid(),
-      amount: amountField,
-      period: z.enum(["monthly", "once"]),
-      dueDay: z.string().transform((v) => (v === "" ? null : Number(v))),
-      dueOn: z.string().transform((v) => (v === "" ? null : v)),
-      divisionId: optionalUuid,
-      batch: z
-        .string()
-        .trim()
-        .transform((v) => (v === "" ? null : v.padStart(2, "0")))
-        .pipe(z.string().regex(/^\d{2}$/).nullable()),
-    })
-    .superRefine((v, ctx) => {
-      if (v.period === "monthly" && !(Number.isInteger(v.dueDay) && v.dueDay! >= 1 && v.dueDay! <= 28)) {
-        ctx.addIssue({ code: "custom", path: ["dueDay"], message: t.finance.fields.dueDay });
-      }
-      if (v.period === "once" && !(v.dueOn && isDateString(v.dueOn))) {
-        ctx.addIssue({ code: "custom", path: ["dueOn"], message: f.dateInvalid });
-      }
-    })
-    .transform((v) => ({
-      ...v,
-      dueDay: v.period === "monthly" ? v.dueDay : null,
-      dueOn: v.period === "once" ? v.dueOn : null,
-    }));
-  return guarded("finance.manage", schema, fd, (input, user) => service.createSchedule(user, input), ["/kas/kelola"]);
+  return guarded("finance.manage", scheduleInputSchema, fd, (input, user) => service.createSchedule(user, input), [
+    "/kas/kelola",
+  ]);
+}
+
+export async function updateScheduleAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  return guarded(
+    "finance.manage",
+    scheduleUpdateSchema,
+    fd,
+    (input, user) => {
+      const { scheduleId, ...values } = input;
+      return service.updateSchedule(user, scheduleId, values);
+    },
+    ["/kas/kelola"],
+  );
+}
+
+export async function toggleScheduleAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const schema = z.object({ scheduleId: z.uuid(), active: z.enum(["true", "false"]) });
+  return guarded(
+    "finance.manage",
+    schema,
+    fd,
+    (input, user) => service.setScheduleActive(user, input.scheduleId, input.active === "true"),
+    ["/kas/kelola"],
+  );
+}
+
+export async function updateCategoryAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const schema = z.object({
+    categoryId: z.uuid(),
+    name: z.string().trim().min(2).max(60),
+    description: z.string().trim().max(300).transform((v) => v || null),
+  });
+  return guarded(
+    "finance.manage",
+    schema,
+    fd,
+    (input, user) => service.updateCategory(user, input.categoryId, { name: input.name, description: input.description }),
+    ["/kas/kelola", "/kas/buku"],
+  );
 }
 
 export async function generateInvoicesAction(_p: ActionState, fd: FormData): Promise<ActionState> {

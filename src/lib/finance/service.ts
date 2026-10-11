@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, isNotNull, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, type SQL } from "drizzle-orm";
 import { getDb, type Tx } from "@/db";
 import {
   divisions,
@@ -20,6 +20,7 @@ import { assertCan, can, type SessionUser } from "@/lib/authz";
 import { id as t } from "@/messages/id";
 import { canCloseMonth, checkReversal, type LedgerEntry, monthOf, monthlyStatement, planInvoices } from "./ledger";
 import { formatRupiah } from "./money";
+import { diffSchedule, scheduleChangeError, type ScheduleValues } from "./schedule-edit";
 import { detectProofType, MAX_PROOF_BYTES, proofObjectPath } from "./proof";
 import { removeProof, uploadProof } from "./storage";
 
@@ -76,8 +77,11 @@ export async function listSchedules() {
       dueOn: feeSchedules.dueOn,
       batch: feeSchedules.batch,
       active: feeSchedules.active,
+      categoryId: feeSchedules.categoryId,
+      divisionId: feeSchedules.divisionId,
       categoryName: financeCategories.name,
       divisionName: divisions.name,
+      invoiceCount: getDb().$count(invoices, eq(invoices.feeScheduleId, feeSchedules.id)),
     })
     .from(feeSchedules)
     .innerJoin(financeCategories, eq(feeSchedules.categoryId, financeCategories.id))
@@ -201,8 +205,46 @@ export async function createCategory(user: SessionUser, input: { name: string; k
 
 export async function setCategoryActive(user: SessionUser, id: string, active: boolean) {
   assertCan(user, "finance.manage");
-  await getDb().update(financeCategories).set({ active }).where(eq(financeCategories.id, id));
-  return ok(t.finance.manage.saved);
+  return inTx(async (tx) => {
+    const updated = await tx
+      .update(financeCategories)
+      .set({ active })
+      .where(eq(financeCategories.id, id))
+      .returning({ id: financeCategories.id });
+    if (updated.length === 0) throw new Abort(t.errors.notFound);
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: active ? "finance.category_activate" : "finance.category_deactivate",
+      entityType: "finance_category",
+      entityId: id,
+    });
+    return ok(t.finance.manage.saved);
+  });
+}
+
+/** Ganti nama dan keterangan kategori. Jenis (pemasukan/pengeluaran) tetap. */
+export async function updateCategory(
+  user: SessionUser,
+  id: string,
+  input: { name: string; description: string | null },
+): Promise<Result> {
+  assertCan(user, "finance.manage");
+  return inTx(async (tx) => {
+    const [before] = await tx.select().from(financeCategories).where(eq(financeCategories.id, id)).limit(1);
+    if (!before) throw new Abort(t.errors.notFound);
+    if (before.name === input.name && before.description === input.description) {
+      throw new Abort(t.finance.manage.noChanges);
+    }
+    await tx.update(financeCategories).set(input).where(eq(financeCategories.id, id));
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: "finance.category_update",
+      entityType: "finance_category",
+      entityId: id,
+      data: { from: { name: before.name, description: before.description }, to: input },
+    });
+    return ok(t.finance.manage.saved);
+  });
 }
 
 export async function createSchedule(
@@ -223,6 +265,51 @@ export async function createSchedule(
   if (!category || category.kind !== "income") return fail(t.finance.errors.categoryKind);
   await getDb().insert(feeSchedules).values({ ...input, createdBy: user.id });
   return ok(t.finance.manage.saved);
+}
+
+export async function updateSchedule(user: SessionUser, id: string, input: ScheduleValues): Promise<Result> {
+  assertCan(user, "finance.manage");
+  return inTx(async (tx) => {
+    const [before] = await tx.select().from(feeSchedules).where(eq(feeSchedules.id, id)).limit(1).for("update");
+    if (!before) throw new Abort(t.errors.notFound);
+    const [category] = await tx.select().from(financeCategories).where(eq(financeCategories.id, input.categoryId)).limit(1);
+    if (!category || category.kind !== "income") throw new Abort(t.finance.errors.categoryKind);
+    const [billed] = await tx.select({ n: count() }).from(invoices).where(eq(invoices.feeScheduleId, id));
+
+    const changes = diffSchedule(before, input);
+    const rejection = scheduleChangeError(changes, billed?.n ?? 0);
+    if (rejection) throw new Abort(rejection);
+
+    await tx.update(feeSchedules).set(input).where(eq(feeSchedules.id, id));
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: "finance.schedule_update",
+      entityType: "fee_schedule",
+      entityId: id,
+      data: { changes },
+    });
+    return ok(t.finance.manage.saved);
+  });
+}
+
+/** Jadwal nonaktif tidak bisa membuat tagihan baru; tagihan lama tetap. */
+export async function setScheduleActive(user: SessionUser, id: string, active: boolean): Promise<Result> {
+  assertCan(user, "finance.manage");
+  return inTx(async (tx) => {
+    const updated = await tx
+      .update(feeSchedules)
+      .set({ active })
+      .where(eq(feeSchedules.id, id))
+      .returning({ id: feeSchedules.id });
+    if (updated.length === 0) throw new Abort(t.errors.notFound);
+    await writeAudit(tx, {
+      actorId: user.id,
+      action: active ? "finance.schedule_activate" : "finance.schedule_deactivate",
+      entityType: "fee_schedule",
+      entityId: id,
+    });
+    return ok(t.finance.manage.saved);
+  });
 }
 
 export async function generateInvoices(user: SessionUser, scheduleId: string, month: string): Promise<Result> {

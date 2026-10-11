@@ -19,6 +19,9 @@ import {
   generateInvoicesAction,
   recordCashAction,
   toggleCategoryAction,
+  toggleScheduleAction,
+  updateCategoryAction,
+  updateScheduleAction,
   waiveInvoiceAction,
 } from "@/lib/finance/actions";
 import { formatRupiah } from "@/lib/finance/money";
@@ -90,11 +93,34 @@ export default async function ManageFinancePage({ searchParams }: PageProps<"/ka
                     {c.name} <Badge variant="outline">{t.finance.kind[c.kind]}</Badge>{" "}
                     {!c.active ? <Badge variant="destructive">{m.inactive}</Badge> : null}
                   </span>
-                  {canManage && c.active ? (
-                    <ActionForm action={toggleCategoryAction} submitLabel={m.deactivate} variant="outline" className="flex">
-                      <input type="hidden" name="categoryId" value={c.id} />
-                      <input type="hidden" name="active" value="false" />
-                    </ActionForm>
+                  {canManage ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ActionForm
+                        action={toggleCategoryAction}
+                        submitLabel={c.active ? m.deactivate : m.activate}
+                        variant="outline"
+                        className="flex"
+                      >
+                        <input type="hidden" name="categoryId" value={c.id} />
+                        <input type="hidden" name="active" value={c.active ? "false" : "true"} />
+                      </ActionForm>
+                    </div>
+                  ) : null}
+                  {canManage ? (
+                    <details className="w-full">
+                      <summary className="cursor-pointer text-xs text-muted-foreground">{m.editCategory}</summary>
+                      <ActionForm action={updateCategoryAction} submitLabel={m.editCategory} variant="outline" className="mt-2 space-y-2">
+                        <input type="hidden" name="categoryId" value={c.id} />
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <Field id={`cat-name-${c.id}`} label={ff.name}>
+                            <Input id={`cat-name-${c.id}`} name="name" defaultValue={c.name} required maxLength={60} />
+                          </Field>
+                          <Field id={`cat-desc-${c.id}`} label={ff.description}>
+                            <Input id={`cat-desc-${c.id}`} name="description" defaultValue={c.description ?? ""} maxLength={300} />
+                          </Field>
+                        </div>
+                      </ActionForm>
+                    </details>
                   ) : null}
                 </li>
               ))}
@@ -127,12 +153,15 @@ export default async function ManageFinancePage({ searchParams }: PageProps<"/ka
             {schedules.length === 0 ? <p className="text-muted-foreground">{m.noSchedules}</p> : null}
             {schedules.map((s) => (
               <div key={s.id} className="space-y-2 rounded-lg border p-3">
-                <p className="font-medium">
-                  {s.name} · {formatRupiah(s.amount)} · {t.finance.period[s.period]}
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium">
+                    {s.name} · {formatRupiah(s.amount)} · {t.finance.period[s.period]}
+                  </p>
+                  {!s.active ? <Badge variant="destructive">{m.inactive}</Badge> : null}
+                </div>
                 <p className="text-muted-foreground">
                   {s.categoryName} · {s.divisionName ?? t.academic.allDivisions}
-                  {s.batch ? ` · ${t.dashboard.batch} ${s.batch}` : ""}
+                  {s.batch ? ` · ${t.dashboard.batch} ${s.batch}` : ""} · {m.invoiceCount(s.invoiceCount)}
                 </p>
                 {canManage && s.active ? (
                   <ActionForm action={generateInvoicesAction} submitLabel={m.generate} variant="outline" className="flex flex-wrap items-end gap-2">
@@ -141,6 +170,96 @@ export default async function ManageFinancePage({ searchParams }: PageProps<"/ka
                       <Input id={`gen-${s.id}`} name="month" type="month" defaultValue={currentMonth} required />
                     </Field>
                   </ActionForm>
+                ) : null}
+                {canManage ? (
+                  <div className="flex flex-wrap items-start gap-2">
+                    <ActionForm
+                      action={toggleScheduleAction}
+                      submitLabel={s.active ? m.deactivate : m.activate}
+                      variant="outline"
+                      className="flex"
+                    >
+                      <input type="hidden" name="scheduleId" value={s.id} />
+                      <input type="hidden" name="active" value={s.active ? "false" : "true"} />
+                    </ActionForm>
+                  </div>
+                ) : null}
+                {canManage ? (
+                  <details>
+                    <summary className="cursor-pointer text-muted-foreground">{m.editSchedule}</summary>
+                    <ActionForm action={updateScheduleAction} submitLabel={m.editSchedule} className="mt-3 space-y-3">
+                      <input type="hidden" name="scheduleId" value={s.id} />
+                      <p className="text-xs text-muted-foreground">{m.editScheduleHint}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field id={`sch-name-${s.id}`} label={ff.name}>
+                          <Input id={`sch-name-${s.id}`} name="name" defaultValue={s.name} required maxLength={80} />
+                        </Field>
+                        <Field id={`sch-cat-${s.id}`} label={ff.category}>
+                          <NativeSelect id={`sch-cat-${s.id}`} name="categoryId" defaultValue={s.categoryId} className="w-full">
+                            {categories
+                              .filter((c) => c.kind === "income" && (c.active || c.id === s.categoryId))
+                              .map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                          </NativeSelect>
+                        </Field>
+                        <Field id={`sch-amount-${s.id}`} label={ff.amount}>
+                          <Input
+                            id={`sch-amount-${s.id}`}
+                            name="amount"
+                            inputMode="numeric"
+                            defaultValue={String(s.amount)}
+                            required
+                          />
+                        </Field>
+                        <Field id={`sch-period-${s.id}`} label={ff.period}>
+                          <NativeSelect
+                            id={`sch-period-${s.id}`}
+                            name="period"
+                            defaultValue={s.period}
+                            className="w-full"
+                            title={s.invoiceCount > 0 ? m.periodLocked : undefined}
+                          >
+                            {(["monthly", "once"] as const)
+                              .filter((p) => s.invoiceCount === 0 || p === s.period)
+                              .map((p) => (
+                                <option key={p} value={p}>
+                                  {t.finance.period[p]}
+                                </option>
+                              ))}
+                          </NativeSelect>
+                        </Field>
+                        <Field id={`sch-dueday-${s.id}`} label={ff.dueDay}>
+                          <Input
+                            id={`sch-dueday-${s.id}`}
+                            name="dueDay"
+                            type="number"
+                            min={1}
+                            max={28}
+                            defaultValue={s.dueDay ?? ""}
+                          />
+                        </Field>
+                        <Field id={`sch-dueon-${s.id}`} label={ff.dueOn}>
+                          <Input id={`sch-dueon-${s.id}`} name="dueOn" type="date" defaultValue={s.dueOn ?? ""} />
+                        </Field>
+                        <Field id={`sch-div-${s.id}`} label={ff.division}>
+                          <NativeSelect id={`sch-div-${s.id}`} name="divisionId" defaultValue={s.divisionId ?? ""} className="w-full">
+                            <option value="">{t.academic.allDivisions}</option>
+                            {divisions.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.name}
+                              </option>
+                            ))}
+                          </NativeSelect>
+                        </Field>
+                        <Field id={`sch-batch-${s.id}`} label={ff.batch}>
+                          <Input id={`sch-batch-${s.id}`} name="batch" defaultValue={s.batch ?? ""} maxLength={2} />
+                        </Field>
+                      </div>
+                    </ActionForm>
+                  </details>
                 ) : null}
               </div>
             ))}
