@@ -8,6 +8,7 @@
 //   bun run lokal migrate        # migrasi Drizzle + cek RLS
 //   bun run lokal seed           # divisi + data dummy (scripts/seed-dummy.ts)
 //   bun run lokal dev            # aplikasi di http://localhost:3001
+//   bun run lokal start          # build + server production di port yang sama
 //   bun run lokal:stop
 //
 // Email dari Supabase lokal (undangan, reset password) masuk ke Mailpit:
@@ -18,6 +19,12 @@ const PORT = "3001";
 
 const COMMANDS: Record<string, string[][]> = {
   dev: [["bunx", "next", "dev", "-p", PORT]],
+  // Build dan server production (folder build .next-lokal), untuk cek header,
+  // ukuran bundle, dan kecepatan seperti di Vercel.
+  start: [
+    ["bunx", "next", "build"],
+    ["bunx", "next", "start", "-p", PORT],
+  ],
   migrate: [
     ["bunx", "drizzle-kit", "migrate"],
     ["bun", "run", "scripts/check-rls.ts"],
@@ -84,7 +91,12 @@ if (import.meta.main) {
     console.error(`Perintah tidak dikenal: "${name}". Pilihan: ${Object.keys(COMMANDS).join(", ")}`);
     process.exit(1);
   }
-  const env = { ...process.env, ...localEnv() };
+  const env: Record<string, string | undefined> = { ...process.env, ...localEnv() };
+  if (name === "start") {
+    // Mode production mewajibkan Upstash (rate limit); pakai nilai dari .env.
+    env.UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
+    env.UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+  }
   for (const cmd of steps) {
     const proc = Bun.spawn([...cmd, ...process.argv.slice(3)], { env, stdio: ["inherit", "inherit", "inherit"] });
     const code = await proc.exited;

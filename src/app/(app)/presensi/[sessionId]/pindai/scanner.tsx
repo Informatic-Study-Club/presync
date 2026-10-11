@@ -1,6 +1,6 @@
 "use client";
 
-import { Scanner } from "@yudiel/react-qr-scanner";
+import dynamic from "next/dynamic";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,12 @@ import { cn } from "@/lib/utils";
 import { id as t } from "@/messages/id";
 
 const s = t.attendance.scanner;
+// Pustaka kamera (dan mesin pembaca barcode-nya) baru dimuat saat kamera
+// dinyalakan; petugas dengan pemindai USB atau ketik kode tidak memuatnya.
+const Scanner = dynamic(() => import("@yudiel/react-qr-scanner").then((m) => m.Scanner), {
+  ssr: false,
+  loading: () => <div className="aspect-square w-full animate-pulse rounded-lg bg-muted" />,
+});
 const DEVICE_KEY = "presync-device-id";
 /** Kode yang sama dari kamera diabaikan selama jeda ini. */
 const CAMERA_DEDUPE_MS = 3000;

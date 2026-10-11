@@ -8,7 +8,14 @@ import * as schema from "./schema";
 // statement harus dimatikan. Koneksi ini melewati RLS: otorisasi sepenuhnya
 // tanggung jawab kode server lewat can().
 function createDb() {
-  const sql = postgres(serverEnv().DATABASE_URL, { prepare: false, max: 5 });
+  const sql = postgres(serverEnv().DATABASE_URL, {
+    prepare: false,
+    max: 5,
+    // Serverless: lepaskan koneksi menganggur supaya tidak menumpuk di pooler
+    // Supabase, dan gagal cepat bila database tidak terjangkau.
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
   return drizzle(sql, { schema });
 }
 

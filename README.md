@@ -39,6 +39,7 @@ bun run lokal:start     # Supabase lokal (pertama kali mengunduh image Docker)
 bun run lokal migrate   # migrasi Drizzle + cek RLS
 bun run lokal seed      # divisi + data dummy: akun uji, kelas, presensi, kas
 bun run lokal dev       # aplikasi di http://localhost:3001
+bun run lokal start     # build + server production (butuh Upstash di .env)
 bun run lokal test      # tes end-to-end Playwright (sekali: bunx playwright install chromium)
 bun run lokal:stop
 ```

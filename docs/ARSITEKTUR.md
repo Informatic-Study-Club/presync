@@ -395,6 +395,7 @@ ALTER TABLE members ENABLE ROW LEVEL SECURITY; -- ulangi untuk semua tabel di sk
 - Cookie sesi terikat ke host `presync...`, tanpa atribut domain `.informaticstudyclub.com`.
 - Kunci API Supabase memakai format baru: publishable key (`sb_publishable_...`) untuk Auth dan Realtime di browser, secret key (`sb_secret_...`) hanya di server untuk Auth Admin dan Storage. Kunci lama `anon`/`service_role` berbentuk JWT sudah usang dan ditolak validasi env. Kedua kunci baru bisa dirotasi sendiri-sendiri tanpa mencabut sesi login.
 - Token sesi ditandatangani kunci JWT asimetris (ECC P-256). `getClaims()` di `proxy.ts` dan `requireSession()` memverifikasinya secara lokal lewat JWKS, sehingga tidak ada panggilan ke server Auth di setiap request.
+- Header keamanan di semua respons (`next.config.ts`): HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` (kamera hanya untuk domain sendiri), dan CSP terbatas (`frame-ancestors`, `base-uri`, `object-src`, `form-action`). CSP belum mengatur `script-src`, karena skrip inline Next.js butuh nonce per request.
 - Secret hanya di environment variable (terpisah per lingkungan). Endpoint cron memeriksa header `Authorization: Bearer <CRON_SECRET>`.
 - Bukti pembayaran di bucket privat, diakses lewat signed URL berumur pendek.
 - `audit_log` mencatat: verifikasi dan koreksi kas, perubahan role, absen manual, impor, penerbitan ulang kartu, penimpaan status sertifikat.

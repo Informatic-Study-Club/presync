@@ -1,5 +1,6 @@
 import "server-only";
 import { and, asc, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
+import { cache } from "react";
 import { getDb } from "@/db";
 import {
   dataRequests,
@@ -11,12 +12,13 @@ import {
 } from "@/db/schema";
 import { can, type SessionUser } from "@/lib/authz";
 
-export async function listDivisions() {
+/** Daftar divisi; di-dedupe per request karena layout dan halaman sama-sama memakainya. */
+export const listDivisions = cache(async () => {
   return getDb()
     .select({ id: divisions.id, name: divisions.name, slug: divisions.slug })
     .from(divisions)
     .orderBy(asc(divisions.name));
-}
+});
 
 /** Divisi yang anggotanya boleh dilihat user (member.list). */
 export async function visibleDivisions(user: SessionUser) {
