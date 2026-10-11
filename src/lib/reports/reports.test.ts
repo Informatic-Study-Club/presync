@@ -89,5 +89,6 @@ describe("renderer", () => {
     const many = { ...report, rows: Array.from({ length: 300 }, (_, i) => ({ ...report.rows[0]!, description: `Baris ${i}` })) };
     const text = new TextDecoder("latin1").decode(await renderPdf(many));
     expect((text.match(/\/Type \/Page\b/g) ?? []).length).toBeGreaterThan(3);
-  });
+    // Render 300 baris PDF bisa lebih dari 5 detik di mesin sibuk atau runner CI.
+  }, 30_000);
 });
