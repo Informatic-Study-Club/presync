@@ -26,6 +26,13 @@ const dateField = z.string().refine(isDateString, f.dateInvalid);
 const monthField = z.string().refine(isMonth, f.monthInvalid);
 const reasonField = z.string().trim().min(3, t.errors.noteRequired).max(500);
 
+/** true bila galat (atau penyebabnya) adalah pelanggaran constraint unik Postgres. */
+function uniqueViolation(err: unknown): boolean {
+  return [err, (err as { cause?: unknown } | null)?.cause].some(
+    (c) => !!c && typeof c === "object" && "code" in c && String(c.code) === "23505",
+  );
+}
+
 async function guarded<S extends z.ZodType>(
   action: Action,
   schema: S,
@@ -37,7 +44,15 @@ async function guarded<S extends z.ZodType>(
   if (!can(user, action)) return { error: t.errors.forbidden };
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? t.auth.invalidInput };
-  const result = await run(parsed.data, user);
+  let result: service.Result;
+  try {
+    result = await run(parsed.data, user);
+  } catch (err) {
+    // Galat database tidak boleh menjadi halaman error 500.
+    if (uniqueViolation(err)) return { error: f.nameTaken };
+    console.error("Aksi kas gagal", err);
+    return { error: t.common.unknownError };
+  }
   if (result.ok) for (const p of paths) revalidatePath(p);
   return result.ok ? { success: result.message } : { error: result.message };
 }

@@ -79,6 +79,18 @@ test.describe.serial("admin", () => {
     await expect(item.getByText(/Komponen sudah punya \d+ nilai/)).toBeVisible();
   });
 
+  test("kategori kas dengan nama yang sudah ada ditolak tanpa error server", async ({ page }) => {
+    const failures: string[] = [];
+    page.on("response", (r) => {
+      if (r.status() >= 500) failures.push(`${r.request().method()} ${r.url()} ${r.status()}`);
+    });
+    await page.goto("/kas/kelola");
+    await page.locator("#cat-name").fill("Iuran");
+    await page.getByRole("button", { name: "Tambah kategori" }).click();
+    await expect(page.getByText("Nama sudah dipakai. Gunakan nama lain.")).toBeVisible();
+    expect(failures).toEqual([]);
+  });
+
   test("laporan terunduh dalam tiga format", async ({ page }) => {
     const month = new Date().toISOString().slice(0, 7);
     const expected = { pdf: "application/pdf", xlsx: "spreadsheetml", csv: "text/csv" } as const;

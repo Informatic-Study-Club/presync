@@ -701,6 +701,7 @@ export const id = {
     },
     errors: {
       amountInvalid: "Nominal tidak valid. Tulis angka rupiah tanpa desimal, misalnya 50.000.",
+      nameTaken: "Nama sudah dipakai. Gunakan nama lain.",
       monthInvalid: "Bulan tidak valid.",
       dateInvalid: "Tanggal tidak valid.",
       categoryKind: "Kategori tidak sesuai jenis transaksi.",
